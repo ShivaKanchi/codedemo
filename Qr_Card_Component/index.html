@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- displays site properly based on user's device -->
+
+  <link rel="icon" type="image/png" sizes="32x32" href="./images/favicon-32x32.png" />
+
+  <title>FM | QR code component</title>
+
+  <!-- Feel free to remove these styles or customise in your own stylesheet 👍 -->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: rgba(211, 220, 255, 0.8);
+    }
+
+    .attribution {
+      font-size: 11px;
+      text-align: center;
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      margin: 10px 5px;
+    }
+
+    .attribution a {
+      color: hsl(228, 45%, 44%);
+    }
+
+
+    .container {
+      display: grid;
+      place-items: center;
+      margin-top: 10%;
+    }
+
+    .qrCard {
+      height: 390px;
+      width: 250px;
+      overflow: hidden;
+      background: #fff;
+      display: grid;
+      justify-content: center;
+      border-radius: 10px;
+      text-align: center;
+      gap: 15px;
+      padding-bottom: 30px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .qrCard:hover {
+      box-shadow: 1px 2px 25px rgb(28, 119, 255);
+      transition: all 0.5s ease-in;
+    }  
+
+    .qrCard::after {
+      content: "";
+      background: rgb(28, 119, 255);
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      border-bottom: 1px dotted blue;
+      animation: reveal 0.5s cubic-bezier(0.785, 0.135, 0.15, 0.86) forwards;
+    }
+
+    .qrCard__imageWrapper {
+      width: 100%;
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    .qrCard__image {
+      border-radius: 10px;
+      object-fit: cover;
+      width: 100%;
+    }
+
+    .qrCard__Heading {
+      font-size: 16px;
+      line-height: 18px;
+      color: #000;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      padding: 0 18px;
+      animation: text-animation 0.8s ease-in-out;
+    }
+
+    .qrCard__subheading {
+      font-size: 15px;
+      line-height: 14px;
+      color: rgba(81, 81, 81, 0.6);
+      font-family: 'Outfit', sans-serif;
+      font-weight: 400;
+      padding: 0 18px;
+      animation: text-animation 0.5s ease-in-out;
+    }
+
+
+    @keyframes reveal {
+      0% {
+        height: 100%;
+      }
+
+      90% {
+        opacity: 1;
+      }
+
+      100% {
+        height: 0%;
+        opacity: 0;
+
+      }
+    }
+
+    @keyframes text-animation {
+      0% {
+        opacity: 0;
+        transform: translateY(-10px), scale(0.1);
+
+      }
+
+      100% {
+
+        opacity: 1;
+        transform: translateY(0px), scale(1);
+      }
+    }
+
+
+    @media  (min-width: 375px) and (max-width: 1440px) {
+      body {
+      background: rgba(57, 95, 250, 0.5);
+    }
+
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="qrCard">
+      <div class="qrCard__imageWrapper">
+        <img class="qrCard__image" src="/images/image-qr-code.png" />
+      </div>
+      <h1 class="qrCard__Heading">Improve your front-end skills by building projects</h1>
+      <span class="qrCard__subheading">Scan the Qr code to visit Frontend Mentor and take your coding skills to the next
+        level</span>
+    </div>
+  </div>
+
+  <div class="attribution">
+    Challenge by
+    <a href="https://www.frontendmentor.io?ref=challenge" target="_blank">Frontend Mentor</a>. Coded by <a
+      href="https://github.com/ShivaKanchi">Shiva Kanchi</a>.
+  </div>
+</body>
+
+</html>
