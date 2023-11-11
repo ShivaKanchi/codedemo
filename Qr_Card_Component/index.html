@@ -38,7 +38,7 @@
     }
 
 
-    .container {
+    main {
       display: grid;
       place-items: center;
       margin-top: 10%;
@@ -150,22 +150,22 @@
 </head>
 
 <body>
-  <div class="container">
+  <main role="main">
     <div class="qrCard">
       <div class="qrCard__imageWrapper">
-        <img class="qrCard__image" src="images/image-qr-code.png" />
+        <img class="qrCard__image" src="images/image-qr-code.png" alt="Qr Code"/>
       </div>
       <h1 class="qrCard__Heading">Improve your front-end skills by building projects</h1>
       <span class="qrCard__subheading">Scan the Qr code to visit Frontend Mentor and take your coding skills to the next
         level</span>
     </div>
-  </div>
+    <div class="attribution" role="contentinfo">
+      Challenge by
+      <a href="https://www.frontendmentor.io?ref=challenge" target="_blank">Frontend Mentor</a>. Coded by <a
+        href="https://github.com/ShivaKanchi">Shiva Kanchi</a>.
+    </div>
+  </main>
 
-  <div class="attribution">
-    Challenge by
-    <a href="https://www.frontendmentor.io?ref=challenge" target="_blank">Frontend Mentor</a>. Coded by <a
-      href="https://github.com/ShivaKanchi">Shiva Kanchi</a>.
-  </div>
 </body>
 
 </html>
