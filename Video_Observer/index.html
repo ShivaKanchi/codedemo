@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blog</title>
+    <style>
+      body {
+        background: #333;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        padding: 0 260px;
+        
+      }
+
+      .container {
+        border: 1px solid rgba(81, 81, 81, 1);
+        width: 100%;
+        height: 500px;
+        position: relative;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 5px;
+      }
+      .float {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        color: #fff;
+        z-index: 99;
+      }
+      .box__1,.box__2,.box__3 {
+        font-size: 18px;
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 10px;
+      }
+      a{
+        text-decoration: none;
+        color: white;
+        padding: 10px;
+      }
+      .box__1 {
+        background: red;
+        grid-area: 1/1/2/2;
+      }
+      .box__2 {
+        background: purple;
+        grid-area: 1/2/3/4;
+      }
+      .box__3 {
+        background: blue;
+        grid-area: 2/1/3/2;
+      }
+      @media (max-width: 1024px) {
+        body{
+          padding: 0 20px;
+
+        }
+        .container {
+          grid-template-columns: 1fr;
+          grid-template-rows: 1fr 1fr 1fr;
+        }
+        .box__1 {
+          grid-area: 1;
+        }
+        .box__2 {
+          grid-area: 2;
+        }
+        .box__3 {
+          grid-area: 3;
+        }
+      }
+      .video-container {
+        border: 1px solid rgba(81, 81, 81, 1);
+        position: relative;
+        display: flex;
+        width: 100%;
+        flex-direction: column;
+        gap: 50px;
+        margin-top: 100px;
+        margin-bottom: 120px;
+      }
+      .video-wrapper {
+        /* margin: 0 60px; */
+        position: relative;
+        width: 100%;
+        padding-top: calc(67400% / 1200);
+        margin-top: 50px;
+        margin-bottom: 50px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+      }
+
+      .video-wrapper video {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      .btnWrap,
+      .video-btn {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: row;
+        padding: 15px;
+      }
+      .btnWrap {
+        justify-content: space-between;
+      }
+
+      .video-btn {
+        justify-content: end;
+      }
+      .vol-btn,
+      .playpause {
+        cursor: pointer;
+        background: none;
+        border: none;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .-mute,
+      .-play {
+        display: none;
+      }
+
+      .btnWrap > .playing > .-play {
+        display: none;
+      }
+      .btnWrap > .playing > .-pause {
+        display: block;
+      }
+
+      .btnWrap > :not(.playing) > .-play {
+        display: block;
+      }
+      .btnWrap > :not(.playing) > .-pause {
+        display: none;
+      }
+
+      /*  */
+      .mt-10 {
+        margin-top: 10px;
+      }
+      .mt-30 {
+        margin-top: 30px;
+      }
+      .mt-100 {
+        margin-top: 100px;
+      }
+
+      img {
+        width: 22px;
+        height: 22px;
+        background-color: transparent;
+      }
+
+      .pos-r {
+        position: relative;
+      }
+      .pos-a {
+        position: absolute;
+      }
+      /*  */
+    </style>
+  </head>
+  <body>
+    <div class="container mt-100">
+      <div class="box__1">
+        <div>BigTitle</div>
+      </div>
+      <div class="box__2">
+        <div>Image</div>
+      </div>
+      <div class="box__3">
+        <div>Description<br/><br/><a href="/index.html">Home</a></div>
+      </div>
+
+      <div class="float">Sale</div>
+    </div>
+
+    <div class="video-container">
+      <div class="video-wrapper">
+        <video
+          playsinline="true"
+          loop
+          muted
+          class="postload-video first-video"
+          width="100%"
+          height="100%"
+          poster="https://res.cloudinary.com/dsjittczd/image/upload/v1701010568/frontend_challenges/ueqbuk5ek7ue1q3hxyzg.webp"
+        >
+          <source src="https://cdn.discordapp.com/attachments/1074715912839647283/1178349497844236328/1.mp4" type="video/mp4" />
+        </video>
+        <div class="btnWrap">
+          <button class="playpause">
+            <svg
+              class="-play"
+              fill="#000000"
+              height="16px"
+              width="16px"
+              version="1.1"
+              id="Layer_1"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+              viewBox="0 0 330 330"
+              xml:space="preserve"
+            >
+              <path
+                id="XMLID_308_"
+                d="M37.728,328.12c2.266,1.256,4.77,1.88,7.272,1.88c2.763,0,5.522-0.763,7.95-2.28l240-149.999
+             c4.386-2.741,7.05-7.548,7.05-12.72c0-5.172-2.664-9.979-7.05-12.72L52.95,2.28c-4.625-2.891-10.453-3.043-15.222-0.4
+             C32.959,4.524,30,9.547,30,15v300C30,320.453,32.959,325.476,37.728,328.12z"
+              />
+            </svg>
+            <svg
+              class="-pause"
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M11 7H8V17H11V7Z" fill="#000000" />
+              <path d="M13 17H16V7H13V17Z" fill="#000000" />
+            </svg>
+          </button>
+          <button class="vol-btn">
+            <svg
+              class="-unmute"
+              width="20px"
+              height="20px"
+              viewBox="0 0 48 48"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M0 0h48v48H0z" fill="none" />
+              <g id="Shopicon">
+                <polygon
+                  points="7.729,43.099 18.178,32.65 29.824,41.971 29.824,21.004 42.558,8.271 39.729,5.442 29.824,15.348 29.824,5.646 
+            17.127,15.81 9.824,15.81 9.824,31.81 13.362,31.81 4.901,40.271 	"
+                />
+              </g>
+            </svg>
+            <svg
+              class="-mute"
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              fill="none"
+            >
+              <path
+                d="M7.7096 14L13 18L13 3L7.7096 7.08749H4.66669V14H7.7096Z"
+                fill="black"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="video-wrapper">
+        <video
+          playsinline="true"
+          loop
+          muted
+          autoplay
+          class="postload-video"
+          width="100%"
+          height="100%"
+          poster="https://res.cloudinary.com/dsjittczd/image/upload/v1701010567/frontend_challenges/awgf7ioglza8teakux9x.webp"
+        >
+          <source src="https://cdn.discordapp.com/attachments/1074715912839647283/1178349503691112578/2.mp4" type="video/mp4" />
+        </video>
+        <div class="video-btn">
+          <button class="vol-btn">
+            <svg
+              class="-unmute"
+              width="20px"
+              height="20px"
+              viewBox="0 0 48 48"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M0 0h48v48H0z" fill="none" />
+              <g id="Shopicon">
+                <polygon
+                  points="7.729,43.099 18.178,32.65 29.824,41.971 29.824,21.004 42.558,8.271 39.729,5.442 29.824,15.348 29.824,5.646 
+      17.127,15.81 9.824,15.81 9.824,31.81 13.362,31.81 4.901,40.271 	"
+                />
+              </g>
+            </svg>
+            <svg
+              class="-mute"
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              fill="none"
+            >
+              <path
+                d="M7.7096 14L13 18L13 3L7.7096 7.08749H4.66669V14H7.7096Z"
+                fill="black"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <script>
+      function postloadVideos() {
+        //Triggering heavy stuff now
+        var videos = Array.prototype.slice.call(
+          document.querySelectorAll(".postload-video")
+        );
+        videos.map(function (video) {
+          // video.setAttribute("autoplay", true);
+
+          var promise = video.play();
+          // var promise = video.pause();
+          if (promise !== undefined) {
+            promise.then(() => {
+              // if not undefined then observe each video element
+              let observer = new IntersectionObserver(
+                (entries) => {
+                  entries.forEach((entry) => {
+                    if (entry.intersectionRatio !== 1 && !video.paused) {
+                      // if ratio of intersection doesn't euals 1 and video is not paused pause the video
+                      console.log("Paused", video);
+                      video.pause();
+                    } else if (video.paused) {
+                      // if video is paused then play the video
+                      if (!video.classList.contains("first-video"))
+                        video.play();
+                      video.muted = true;
+                    }
+                    if (video.classList.contains("first-video")) {
+                      video.pause();
+                    }
+                  });
+                },
+                // threshold for observing
+                { threshold: 0.2 }
+              );
+              // observe video
+              observer.observe(video);
+            });
+
+            promise
+              .catch((error) => {
+                console.log("Error", error);
+                // Auto-play was prevented
+                // Show a UI element to let the user manually start playback
+              })
+              .then(() => {
+                // Auto-play started
+                console.log("Autoplay");
+              });
+          }
+        });
+      }
+      function videoControls() {
+        var videos = document.querySelectorAll(".postload-video");
+
+        videos.forEach((video) => {
+          let videoParent = video.parentNode;
+          videoBtnWrap1 = videoParent.querySelector(".btnWrap");
+          let playpausebtn = videoBtnWrap1?.querySelector(".playpause");
+          let volbtn1 = videoBtnWrap1?.querySelector(".vol-btn");
+          playpausebtn?.addEventListener("click", () => {
+            if (video.paused) {
+              video.muted = false;
+              video.play();
+              volbtn1.classList.add("unmute");
+
+              playpausebtn.classList.add("playing");
+            } else {
+              video.pause();
+              video.muted = true;
+              volbtn1.classList.remove("unmute");
+
+              playpausebtn.classList.remove("playing");
+            }
+          });
+          volbtn1?.addEventListener("click", () => {
+            if (video.muted) {
+              video.muted = false;
+              volbtn1.classList.add("unmute");
+            } else {
+              video.muted = true;
+              volbtn1.classList.remove("unmute");
+            }
+          });
+          videoBtnWrap2 = videoParent.querySelector(".video-btn")
+            ? videoParent.querySelector(".video-btn")
+            : null;
+          let volbtn2 = videoBtnWrap2?.querySelector(".vol-btn");
+          volbtn2?.addEventListener("click", () => {
+            if (video.muted) {
+              video.muted = false;
+              volbtn2.classList.add("unmute");
+            } else {
+              video.muted = true;
+              volbtn2.classList.remove("unmute");
+            }
+          });
+        });
+      }
+      postloadVideos();
+      videoControls();
+    </script>
+  </body>
+</html>
