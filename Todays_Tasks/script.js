@@ -44,7 +44,7 @@ function getCurrentHour() {
 }
 
 function updateCursor(cursorEle) {
-  cursorEle.style.top = time.getMinutes() + "%";
+  cursorEle.style.top = (time.getMinutes() * 100) / 60 + "%";
   return cursorEle;
 }
 
