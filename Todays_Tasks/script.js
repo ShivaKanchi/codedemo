@@ -50,6 +50,7 @@ function updateCursor(cursorEle) {
 
 addHours();
 let currentActiveTask = getCurrentHour();
-let updatedCursor = updateCursor(currentActiveTask[1]);
-
-console.log("update", updateCursor);
+updateCursor(currentActiveTask[1]);
+setInterval(() => {
+  updateCursor(currentActiveTask[1]);
+}, 5000);

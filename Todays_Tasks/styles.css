@@ -10,6 +10,7 @@ body {
 :root {
   --color-border: #888;
   --text-color: #fff;
+  --cta-color: #3f51b5;
 }
 
 .container {
@@ -58,23 +59,33 @@ body {
   padding-top: 10px;
 }
 
+.time__editCursor,
 .time__nowCursor {
   align-self: flex-start;
-  background: var(--text-color);
   height: 2px;
   position: relative;
   top: 0%;
   width: calc(100% - 50px);
   right: 0;
+  cursor: pointer;
 }
 
+.time__editCursor:before,
 .time__nowCursor:before {
   content: "";
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background-color: var(--text-color);
+  background-color: inherit;
   position: absolute;
   left: -10px;
   top: -450%;
+}
+
+.time__nowCursor {
+  background: var(--text-color);
+}
+
+.time__editCursor {
+  background: var(--cta-color);
 }
