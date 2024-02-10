@@ -30,16 +30,7 @@ function getCurrentHour() {
   const currentCursor = document.createElement("div");
   currentCursor.classList.add("time__nowCursor");
   currentHour.appendChild(currentCursor);
-  return [currentHour, currentCursor];
-}
 
-function getCurrentHour() {
-  const currentHour = document.querySelector(
-    `[data-hour="${time.getHours()}"]`
-  );
-  const currentCursor = document.createElement("div");
-  currentCursor.classList.add("time__nowCursor");
-  currentHour.appendChild(currentCursor);
   return [currentHour, currentCursor];
 }
 
@@ -53,4 +44,21 @@ let currentActiveTask = getCurrentHour();
 updateCursor(currentActiveTask[1]);
 setInterval(() => {
   updateCursor(currentActiveTask[1]);
-}, 5000);
+}, 60000);
+
+const editCursor = document.querySelector(".time__editCursor");
+const nowCursor = document.querySelector(".time__nowCursor");
+
+function addEditCursor() {
+  const currentHour = document.querySelector(
+    `[data-hour="${time.getHours()}"]`
+  );
+  const editCursor = document.createElement("div");
+  editCursor.classList.add("time__editCursor");
+  currentHour.appendChild(editCursor);
+}
+
+nowCursor.addEventListener("click", () => {
+  console.log("Clicked, ready to add draggable edit cursor");
+  // addEditCursor();
+});
