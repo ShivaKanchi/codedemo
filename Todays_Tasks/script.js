@@ -33,21 +33,24 @@ modal.addEventListener("click", (e) => {
 // Append Hours to Task List
 function addHours() {
   for (let i = startHour; i <= endHour; i++) {
+    // Container of this hour
     const hourTask = document.createElement("div");
     hourTask.classList.add("task__hour");
     hourTask.dataset.hour = i;
+    // Hour
     const hour = document.createElement("span");
     hour.textContent = (i > 12 ? i : i) + (i >= 13 ? "pm" : "am");
     hourTask.appendChild(hour);
+    // TaskList of this hour
     const hourTaskList = document.createElement("div");
     hourTaskList.classList.add("task__hourtaskList");
-    hourTask.appendChild(hourTaskList);
-    allTodaysTask.push(hourTask);
-
-    hourTask.addEventListener("click", (e) => {
+    hourTaskList.addEventListener("click", (e) => {
       openModal(e, "add");
     });
+
+    hourTask.appendChild(hourTaskList);
     hourlytasksWrapper.appendChild(hourTask);
+    allTodaysTask.push(hourTask);
   }
 }
 
