@@ -5,6 +5,8 @@ body {
   padding: 0;
   box-sizing: border-box;
   color: var(--text-color);
+  background-color: #333;
+  color-scheme: dark;
 }
 
 :root {
@@ -13,20 +15,39 @@ body {
   --cta-color: #3f51b5;
 }
 
-.task__wrapper {
+.container {
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.8);
+  background-color: #333;
   display: flex;
   flex-direction: column;
-  padding: 5%;
-  border: 1px solid var(--color-border);
+}
+
+.container.--hide {
+  filter: blur(2px);
 }
 
 .task__heading {
+  position: fixed;
+  top: 0;
+  width: 100%;
   border-bottom: 1px solid var(--color-border);
   text-align: center;
+  background-color: #333;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100px;
+  transition: top 0.5s ease-in-out;
 }
-
+.task__heading.--hide {
+  top: -100px;
+}
+.task__wrapper {
+  padding: 0 5%;
+  margin-bottom: 10%;
+  margin-top: 100px;
+}
 .task__daylist {
   display: flex;
   flex-direction: column;
@@ -51,17 +72,27 @@ body {
   justify-content: start;
   align-items: start;
   border-right: 1px solid var(--color-border);
+  padding-top: 15px;
+}
+.task__hourtaskList {
+  width: calc(100% - 50px);
+  height: 100%;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+.task__hourtaskList:hover {
+  transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+  border: 2px solid var(--cta-color);
 }
 
 .time__editCursor,
 .time__nowCursor {
   align-self: flex-start;
   height: 2px;
-  position: relative;
+  position: absolute;
   top: 0%;
   width: calc(100% - 50px);
   right: 0;
-  cursor: pointer;
 }
 
 .time__editCursor:before,
@@ -82,4 +113,52 @@ body {
 
 .time__editCursor {
   background: var(--cta-color);
+}
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  width: 100vw;
+  height: 100vh;
+  justify-content: center;
+  align-content: center;
+  padding-top: 15%;
+  letter-spacing: -0.5px;
+  background: rgb(255, 255, 255, 0.1);
+  display: none;
+}
+.modal.--show {
+  display: flex;
+}
+.modal__wrapper {
+  height: 20%;
+  background: #333;
+  border: 3px solid var(--color-border);
+  border-radius: 10px;
+  padding: 5px 10px;
+  position: absolute;
+  z-index: 9999;
+}
+
+.modal__Heading {
+  display: block;
+  font-size: 20px;
+  text-align: center;
+  padding: 5px;
+  border-bottom: 1px solid var(--color-border);
+}
+.modal__form {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+.modal__form > label:not([for="submitLabel"]) {
+  width: 100%;
+}
+.modal__form > label[for="submitLabel"] {
+  align-self: flex-end;
 }

@@ -1,4 +1,9 @@
 const time = new Date();
+const container = document.querySelector(".container");
+const modal = document.querySelector(".modal");
+const modalTitle = modal.querySelector(".modal__Heading");
+
+const taskHeading = document.querySelector(".task__heading");
 const todaysDayEle = document.querySelector(".task__todaysDate");
 todaysDayEle.textContent = time.toDateString();
 
@@ -9,8 +14,24 @@ const startHour = 7;
 const endHour = 23;
 const allTodaysTask = [];
 
+function openModal(e, operation) {
+  console.log("e - operation", operation);
+  let selectedHour = parseInt(e.target.parentNode.dataset.hour);
+  container.classList.add("--hide");
+  modal.classList.add("--show");
+  modalTitle.textContent = `Add Task for ${selectedHour} to ${
+    selectedHour + 1
+  }`;
+}
+function closeModal() {
+  container.classList.remove("--hide");
+  modal.classList.remove("--show");
+}
+modal.addEventListener("click", (e) => {
+  e.target.classList.contains("modal") && closeModal();
+});
+// Append Hours to Task List
 function addHours() {
-  // Append Hours to Task List
   for (let i = startHour; i <= endHour; i++) {
     const hourTask = document.createElement("div");
     hourTask.classList.add("task__hour");
@@ -18,7 +39,14 @@ function addHours() {
     const hour = document.createElement("span");
     hour.textContent = (i > 12 ? i : i) + (i >= 13 ? "pm" : "am");
     hourTask.appendChild(hour);
+    const hourTaskList = document.createElement("div");
+    hourTaskList.classList.add("task__hourtaskList");
+    hourTask.appendChild(hourTaskList);
     allTodaysTask.push(hourTask);
+
+    hourTask.addEventListener("click", (e) => {
+      openModal(e, "add");
+    });
     hourlytasksWrapper.appendChild(hourTask);
   }
 }
@@ -46,19 +74,13 @@ setInterval(() => {
   updateCursor(currentActiveTask[1]);
 }, 60000);
 
-const editCursor = document.querySelector(".time__editCursor");
-const nowCursor = document.querySelector(".time__nowCursor");
-
-function addEditCursor() {
-  const currentHour = document.querySelector(
-    `[data-hour="${time.getHours()}"]`
-  );
-  const editCursor = document.createElement("div");
-  editCursor.classList.add("time__editCursor");
-  currentHour.appendChild(editCursor);
-}
-
-nowCursor.addEventListener("click", () => {
-  console.log("Clicked, ready to add draggable edit cursor");
-  // addEditCursor();
+let currentY = 0;
+window.addEventListener("scroll", () => {
+  if (currentY > window.scrollY) {
+    taskHeading.classList.remove("--hide");
+    currentY = window.scrollY;
+  } else {
+    taskHeading.classList.add("--hide");
+    currentY = window.scrollY;
+  }
 });
