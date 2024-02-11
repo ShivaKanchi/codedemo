@@ -15,7 +15,6 @@ const endHour = 23;
 const allTodaysTask = [];
 
 function openModal(e, operation) {
-  console.log("e - operation", operation);
   let selectedHour = parseInt(e.target.parentNode.dataset.hour);
   container.classList.add("--hide");
   modal.classList.add("--show");

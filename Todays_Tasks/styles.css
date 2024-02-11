@@ -79,9 +79,10 @@ body {
   height: 100%;
   cursor: pointer;
   border: 2px solid transparent;
+  transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+  /* -webkit-tap-highlight-color: transparent; */
 }
 .task__hourtaskList:hover {
-  transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
   border: 2px solid var(--cta-color);
 }
 
