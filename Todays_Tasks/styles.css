@@ -37,11 +37,35 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-direction: column;
   height: 100px;
   transition: top 0.3s ease-in;
 }
 .task__heading.--hide {
-  top: -100px;
+  top: -50px;
+}
+.task__todaysDate {
+  margin: 0;
+  margin-bottom: auto;
+  margin-top: 10px;
+}
+.task__tabsWrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: absolute;
+  bottom: 0;
+  width: 50%;
+  height: 50px;
+  border-top: 1px solid var(--color-border);
+  padding: 0 20px;
+  gap: 20px;
+}
+.task__tabsList {
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 20px;
+  letter-spacing: normal;
 }
 .task__wrapper {
   padding: 0 5%;
@@ -162,4 +186,14 @@ body {
 }
 .modal__form > label[for="submitLabel"] {
   align-self: flex-end;
+}
+@media screen and (max-width: 1023px) {
+  .task__tabsWrapper {
+    width: 90%;
+  }
+  .task__tabsList {
+    overflow: hidden;
+    overflow-x: scroll;
+    padding: 10px;
+  }
 }
