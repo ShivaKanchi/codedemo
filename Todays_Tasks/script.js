@@ -1,5 +1,8 @@
 const time = new Date();
 const container = document.querySelector(".container");
+
+const addTaskButton = document.querySelector(".task__addtask");
+
 const modal = document.querySelector(".modal");
 const modalTitle = modal.querySelector(".modal__Heading");
 
@@ -18,9 +21,9 @@ function openModal(e, operation) {
   let selectedHour = parseInt(e.target.parentNode.dataset.hour);
   container.classList.add("--hide");
   modal.classList.add("--show");
-  modalTitle.textContent = `Add Task for ${selectedHour} to ${
-    selectedHour + 1
-  }`;
+  // modalTitle.textContent = `Add Task for ${selectedHour} to ${
+  //   selectedHour + 1
+  // }`;
 }
 function closeModal() {
   container.classList.remove("--hide");
@@ -43,9 +46,6 @@ function addHours() {
     // TaskList of this hour
     const hourTaskList = document.createElement("div");
     hourTaskList.classList.add("task__hourtaskList");
-    hourTaskList.addEventListener("click", (e) => {
-      openModal(e, "add");
-    });
 
     hourTask.appendChild(hourTaskList);
     hourlytasksWrapper.appendChild(hourTask);
@@ -85,4 +85,8 @@ window.addEventListener("scroll", () => {
     taskHeading.classList.add("--hide");
     currentY = window.scrollY;
   }
+});
+
+addTaskButton.addEventListener("click", (e) => {
+  openModal(e, "add");
 });

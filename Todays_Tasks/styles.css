@@ -67,6 +67,45 @@ body {
   gap: 20px;
   letter-spacing: normal;
 }
+
+.task__tab {
+  opacity: 0.6;
+  padding: 4px;
+}
+.task__tab.--users-task {
+  margin: 0 10px;
+}
+.task__tab.active {
+  opacity: 1;
+  transform: skewX(-10deg);
+  border: 1px solid var(--color-border);
+}
+
+.task__tab[data-taskid="1"] {
+  background-color: red;
+}
+.task__tab[data-taskid="2"] {
+  background-color: orange;
+}
+.task__tab[data-taskid="3"] {
+  background-color: yellow;
+}
+.task__tab[data-taskid="4"] {
+  background-color: blue;
+}
+.task__tab[data-taskid="5"] {
+  background-color: pink;
+}
+.task__tab[data-taskid="6"] {
+  background-color: purple;
+}
+.task__tab[data-taskid="7"] {
+  background-color: green;
+}
+.task__tab[data-taskid="8"] {
+  background-color: azure;
+}
+
 .task__wrapper {
   padding: 0 5%;
   margin-bottom: 10%;
@@ -130,6 +169,7 @@ body {
   position: absolute;
   left: -10px;
   top: -450%;
+  z-index: 1;
 }
 
 .time__nowCursor {
@@ -194,6 +234,6 @@ body {
   .task__tabsList {
     overflow: hidden;
     overflow-x: scroll;
-    padding: 10px;
+    /* padding: 10px; */
   }
 }
