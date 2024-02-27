@@ -10,7 +10,7 @@ todaysDayEle.textContent = time.toDateString();
 const hourlytasksWrapper = document.getElementById("taskList");
 
 const totalHours = 24;
-const startHour = 7;
+const startHour = 0;
 const endHour = 23;
 const allTodaysTask = [];
 
