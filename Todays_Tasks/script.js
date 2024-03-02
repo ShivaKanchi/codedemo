@@ -148,7 +148,7 @@ function addTasksToTabs(tasksData) {
     tabElement.classList.add("task__tab");
     tabElement.dataset.task = task.taskName;
     tabElement.dataset.color = task.taskColor;
-    tabElement.dataset.taskId = i;
+    tabElement.dataset.taskId = i + 1;
     tabElement.textContent = task.taskName;
     taskTabs.appendChild(tabElement);
   });
