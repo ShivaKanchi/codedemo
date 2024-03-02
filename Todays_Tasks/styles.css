@@ -33,7 +33,7 @@ body {
   border-bottom: 1px solid var(--color-border);
   text-align: center;
   background-color: var(--bg-color);
-  z-index: 1;
+  z-index: 2;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -41,9 +41,21 @@ body {
   height: 100px;
   transition: top 0.3s ease-in;
 }
-.task__heading.--hide {
+.task__heading:not(.bottom-nav).--hide {
   top: -50px;
 }
+
+.task__heading.bottom-nav {
+  top: unset;
+  bottom: -1%;
+  border-top: 1px solid var(--color-border);
+}
+
+.task__heading.bottom-nav ~ .task__wrapper {
+  margin-top: 0;
+  margin-bottom: 100px;
+}
+
 .task__todaysDate {
   margin: 0;
   margin-bottom: auto;
@@ -60,6 +72,12 @@ body {
   border-top: 1px solid var(--color-border);
   padding: 0 20px;
   gap: 20px;
+}
+.task__addtaskWrapper {
+  height: 100%;
+  display: flex;
+  justify-content: start;
+  align-items: center;
 }
 .task__tabsList {
   display: flex;
@@ -140,7 +158,49 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  position: relative;
 }
+.task__occupied {
+  position: absolute;
+  width: calc(90%);
+  height: 100px;
+  top: 100px;
+  opacity: 0.69;
+}
+
+.task__occupied:after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: calc(100% - 51px);
+  height: 100%;
+}
+.task__occupied[data-color="red"]:after {
+  background-color: red;
+}
+.task__occupied[data-color="orange"]:after {
+  background-color: orange;
+}
+.task__occupied[data-color="yellow"]:after {
+  background-color: yellow;
+}
+.task__occupied[data-color="blue"]:after {
+  background-color: blue;
+}
+.task__occupied[data-color="pink"]:after {
+  background-color: pink;
+}
+.task__occupied[data-color="purple"]:after {
+  background-color: purple;
+}
+.task__occupied[data-color="green"]:after {
+  background-color: green;
+}
+.task__occupied[data-color="azure"]:after {
+  background-color: azure;
+}
+
 .task__hour {
   width: 90%;
   height: 15vh;
@@ -229,6 +289,9 @@ body {
   padding: 5px 10px;
   position: absolute;
   z-index: 9999;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
 }
 
 .modal__Heading {
@@ -251,6 +314,32 @@ body {
 .modal__form > label[for="submitLabel"] {
   align-self: flex-end;
 }
+
+.modal__formColorInput > select > option[value="red"] {
+  color: red;
+}
+.modal__formColorInput > select > option[value="orange"] {
+  color: orange;
+}
+.modal__formColorInput > select > option[value="yellow"] {
+  color: yellow;
+}
+.modal__formColorInput > select > option[value="blue"] {
+  color: blue;
+}
+.modal__formColorInput > select > option[value="pink"] {
+  color: pink;
+}
+.modal__formColorInput > select > option[value="purple"] {
+  color: purple;
+}
+.modal__formColorInput > select > option[value="green"] {
+  color: green;
+}
+.modal__formColorInput > select > option[value="azure"] {
+  color: azure;
+}
+
 @media screen and (max-width: 1023px) {
   .task__tabsWrapper {
     width: 90%;

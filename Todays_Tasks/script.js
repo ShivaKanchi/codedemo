@@ -14,10 +14,14 @@ todaysDayEle.textContent = todaysDate;
 const hourlytasksWrapper = document.getElementById("taskList");
 
 const totalHours = 24;
-const startHour = 0;
+const startHour = 10;
 const endHour = 23;
 const allTodaysTask = [];
 
+function toggleNavbar() {
+  taskHeading.classList.toggle("bottom-nav");
+}
+taskHeading.addEventListener("click", () => toggleNavbar());
 function openModal(e, operation) {
   // let selectedHour = parseInt(e.target.parentNode.dataset.hour);
   container.classList.add("--hide");
@@ -108,8 +112,32 @@ const listOfTasks = [
     date: todaysDate,
     totalNumberOfTasks: 2,
     tasks: [
-      { taskName: "SPRE", taskColor: "blue" },
-      { taskName: "Jv", taskColor: "orange" },
+      {
+        taskName: "SPRE",
+        taskColor: "blue",
+        time: [
+          {
+            start: "2024-03-02T06:00:11.658Z",
+            end: "2024-03-02T07:00:11.658Z",
+          },
+        ],
+        taskEfforts: 1,
+      },
+      {
+        taskName: "Jv",
+        taskColor: "orange",
+        time: [
+          {
+            start: "2024-03-02T11:00:11.658Z",
+            end: "2024-03-02T12:00:11.658Z",
+          },
+          {
+            start: "2024-03-02T13:00:11.658Z",
+            end: "2024-03-02T13:30:11.658Z",
+          },
+        ],
+        taskEfforts: 1,
+      },
     ],
   },
 ];
@@ -137,13 +165,14 @@ function getTodaysTask(dateForTask) {
 }
 const todaysTaskData = getTodaysTask(todaysDate);
 
-/*------ Add Tasks tab ------*/
+/*------ Add Todays Tasks tab ------*/
 const taskTabs = document.querySelector(".task__tabsList");
-console.log(todaysTaskData.tasks);
+// console.log(todaysTaskData.tasks);
+var tasksList = new Array();
 
 function addTasksToTabs(tasksData) {
   tasksData.tasks.forEach((task, i) => {
-    console.log(task.taskName, i, task.taskColor);
+    tasksList.push(task);
     let tabElement = document.createElement("div");
     tabElement.classList.add("task__tab");
     tabElement.dataset.task = task.taskName;
@@ -157,7 +186,6 @@ function addTasksToTabs(tasksData) {
 addTasksToTabs(todaysTaskData);
 /*------ Tabs ------*/
 const tabs = document.querySelectorAll(".task__tab");
-
 tabs.forEach((tab) => {
   tab.addEventListener("click", (e) => {
     ativateTab(e);
@@ -171,4 +199,43 @@ function ativateTab(e) {
     });
     e.currentTarget.classList.add("active");
   }
+}
+
+/*------ Occupied Time ------*/
+const onetaskHourEle = document.querySelector(".task__hour").offsetHeight;
+tasksList.forEach((task) => {
+  let totalHoursSpent = new Number();
+  task.time.forEach((timeBreak) => {
+    totalHoursSpent += addOccupiedTimeBar(
+      timeBreak.start,
+      timeBreak.end,
+      task.taskColor
+    );
+  });
+  task.taskEfforts = totalHoursSpent;
+  console.log(task.taskName, totalHoursSpent);
+  storeTasks(listOfTasks);
+});
+
+function addOccupiedTimeBar(start, end, color) {
+  var occupiedTimeEle = document.createElement("div");
+  occupiedTimeEle.className = "task__occupied";
+  occupiedTimeEle.dataset.color = color;
+
+  let startHour = new Date(start).getHours();
+  let startMinutes = new Date(start).getMinutes();
+  let endHour = new Date(end).getHours();
+  let endMinutes = new Date(end).getMinutes();
+
+  let startTotalMinutes = startHour * 60 + startMinutes;
+  let endTotalMinutes = endHour * 60 + endMinutes;
+
+  let top = ((startTotalMinutes - 10 * 60) * onetaskHourEle) / 60;
+  let totalTime = (endTotalMinutes - startTotalMinutes) / 60;
+
+  occupiedTimeEle.style.top = "calc(" + top + "px" + " - 3.7% )";
+  occupiedTimeEle.style.height = totalTime * onetaskHourEle + "px";
+
+  hourlytasksWrapper.appendChild(occupiedTimeEle);
+  return totalTime;
 }
