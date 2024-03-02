@@ -1,4 +1,5 @@
 const time = new Date();
+const todaysDate = time.toDateString();
 const container = document.querySelector(".container");
 
 const addTaskButton = document.querySelector(".task__addtask");
@@ -8,7 +9,7 @@ const modalTitle = modal.querySelector(".modal__Heading");
 
 const taskHeading = document.querySelector(".task__heading");
 const todaysDayEle = document.querySelector(".task__todaysDate");
-todaysDayEle.textContent = time.toDateString();
+todaysDayEle.textContent = todaysDate;
 
 const hourlytasksWrapper = document.getElementById("taskList");
 
@@ -18,7 +19,7 @@ const endHour = 23;
 const allTodaysTask = [];
 
 function openModal(e, operation) {
-  let selectedHour = parseInt(e.target.parentNode.dataset.hour);
+  // let selectedHour = parseInt(e.target.parentNode.dataset.hour);
   container.classList.add("--hide");
   modal.classList.add("--show");
   // modalTitle.textContent = `Add Task for ${selectedHour} to ${
@@ -90,3 +91,84 @@ window.addEventListener("scroll", () => {
 addTaskButton.addEventListener("click", (e) => {
   openModal(e, "add");
 });
+
+/*------ Storing data ------*/
+
+const listOfTasks = [
+  {
+    date: "Sat Mar 01 2024",
+    totalNumberOfTasks: 3,
+    tasks: [
+      { taskName: "Camel", taskColor: "red" },
+      { taskName: "Jv", taskColor: "orange" },
+      { taskName: "BDC", taskColor: "yellow" },
+    ],
+  },
+  {
+    date: todaysDate,
+    totalNumberOfTasks: 2,
+    tasks: [
+      { taskName: "SPRE", taskColor: "blue" },
+      { taskName: "Jv", taskColor: "orange" },
+    ],
+  },
+];
+
+function storeTasks(tasks) {
+  const dataToStore = JSON.stringify(tasks);
+  // console.log(dataToStore);
+  localStorage.setItem("TodaysTaskManager", dataToStore);
+}
+storeTasks(listOfTasks);
+
+function getTodaysTask(dateForTask) {
+  const dataGot = JSON.parse(localStorage.getItem("TodaysTaskManager"));
+  let dataToFind;
+  dataGot.map((dateData, i) => {
+    newFunction();
+
+    function newFunction() {
+      if (dataGot[i].date.toString() == dateForTask) {
+        dataToFind = dateData;
+      }
+    }
+  });
+  return dataToFind;
+}
+const todaysTaskData = getTodaysTask(todaysDate);
+
+/*------ Add Tasks tab ------*/
+const taskTabs = document.querySelector(".task__tabsList");
+console.log(todaysTaskData.tasks);
+
+function addTasksToTabs(tasksData) {
+  tasksData.tasks.forEach((task, i) => {
+    console.log(task.taskName, i, task.taskColor);
+    let tabElement = document.createElement("div");
+    tabElement.classList.add("task__tab");
+    tabElement.dataset.task = task.taskName;
+    tabElement.dataset.color = task.taskColor;
+    tabElement.dataset.taskId = i;
+    tabElement.textContent = task.taskName;
+    taskTabs.appendChild(tabElement);
+  });
+}
+
+addTasksToTabs(todaysTaskData);
+/*------ Tabs ------*/
+const tabs = document.querySelectorAll(".task__tab");
+
+tabs.forEach((tab) => {
+  tab.addEventListener("click", (e) => {
+    ativateTab(e);
+  });
+});
+
+function ativateTab(e) {
+  if (!e.currentTarget.classList.contains("active")) {
+    tabs.forEach((tab) => {
+      tab.classList.contains("active") && tab.classList.remove("active");
+    });
+    e.currentTarget.classList.add("active");
+  }
+}
