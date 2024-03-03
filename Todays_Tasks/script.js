@@ -16,7 +16,7 @@ const hourlytasksWrapper = document.getElementById("taskList");
 const taskTabs = document.querySelector(".task__tabsList");
 
 const totalHours = 24;
-const startHour = 10;
+const startHour = 0;
 const endHour = 23;
 const allTodaysTask = [];
 
@@ -69,7 +69,6 @@ function getCurrentHour() {
   const currentCursor = document.createElement("div");
   currentCursor.classList.add("time__nowCursor");
   currentHour.appendChild(currentCursor);
-
   return [currentHour, currentCursor];
   // }
 }
@@ -116,17 +115,17 @@ var listOfTasks = [
       //   ],
       //   taskEfforts: 1,
       // },
-      // {
-      //   taskName: "SPRE",
-      //   taskColor: "blue",
-      //   time: [
-      //     {
-      //       start: "2024-03-02T06:00:11.658Z",
-      //       end: "2024-03-02T07:00:11.658Z",
-      //     },
-      //   ],
-      //   taskEfforts: 1,
-      // },
+      {
+        taskName: "Breakfast",
+        taskColor: "azure",
+        time: [
+          {
+            start: "2024-03-02T06:00:11.658Z",
+            end: "2024-03-02T07:00:11.658Z",
+          },
+        ],
+        taskEfforts: 1,
+      },
       // {
       //   taskName: "Jv",
       //   taskColor: "orange",
@@ -200,6 +199,7 @@ function addTasksToTabs(tasksData) {
   taskTabs.querySelectorAll(".task__tab").forEach((tab) => {
     if (!tab.classList.contains("--users-task")) tab.remove();
   });
+
   tasksData.tasks.forEach((task, i) => {
     tasksList.push(task);
     let tabElement = document.createElement("div");
