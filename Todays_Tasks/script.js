@@ -21,7 +21,7 @@ const allTodaysTask = [];
 function toggleNavbar() {
   taskHeading.classList.toggle("bottom-nav");
 }
-taskHeading.addEventListener("click", () => toggleNavbar());
+todaysDayEle.addEventListener("click", () => toggleNavbar());
 function openModal(e, operation) {
   // let selectedHour = parseInt(e.target.parentNode.dataset.hour);
   container.classList.add("--hide");
@@ -59,6 +59,7 @@ function addHours() {
 }
 
 function getCurrentHour() {
+  // if (time.getHours() > endHour) {
   const currentHour = document.querySelector(
     `[data-hour="${time.getHours()}"]`
   );
@@ -67,6 +68,7 @@ function getCurrentHour() {
   currentHour.appendChild(currentCursor);
 
   return [currentHour, currentCursor];
+  // }
 }
 
 function updateCursor(cursorEle) {
