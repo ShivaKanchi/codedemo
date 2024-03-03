@@ -13,10 +13,13 @@
           <h1 class="task__todaysDate"></h1>
           <div class="task__tabsWrapper">
             <div class="task__tabsList">
-              <div class="task__tab --users-task active">leisure</div>
-              <!-- <div class="task__tab" data-task="camel" data-taskid="1">Camel</div> -->
-              <!-- <div class="task__tab" data-task="jv" data-task-id="2">JV</div> -->
-              <!-- <div class="task__tab" data-task="jv" data-task-id="2">JV</div> -->
+              <div
+                class="task__tab --users-task active"
+                data-task="leisure"
+                data-task-id="0"
+              >
+                leisure
+              </div>
             </div>
             <div class="task__addtaskWrapper">
               <button class="task__addtask">Add</button>
@@ -24,35 +27,21 @@
           </div>
         </div>
         <div class="task__wrapper">
-          <div class="task__daylist" id="taskList">
-            <!-- <div class="task__occupied" data-color="red"></div> -->
-            <!--  -->
-            <!-- <div class="task__hour" data-hour="7" data-meridiem="AM">
-              <span>Edit</span>
-              <div class="time__editCursor" draggable="true"></div>
-              <div class="task__hourtaskList"></div>
-            </div> -->
-            <!--  -->
-            <!-- <div class="task__hour" data-hour="7" data-meridiem="AM">
-              <span>Now</span>
-              <div class="time__nowCursor"></div>
-            </div> -->
-            <!--  -->
-          </div>
+          <div class="task__daylist" id="taskList"></div>
         </div>
       </div>
 
       <div class="modal">
         <div class="modal__wrapper">
           <span class="modal__Heading">Add Task</span>
-          <form action="#" class="modal__form">
+          <form class="modal__form" id="addNewTask">
             <label class="modal__formTextInput" for="taskName">
               Name
-              <input type="text" id="taskName" />
+              <input type="text" id="taskName" value="taskName" />
             </label>
             <label class="modal__formColorInput" for="taskColor">
               Color
-              <select type="text" id="taskColor">
+              <select type="text" id="taskColor" value="taskColor">
                 <option value="red" selected>Red</option>
                 <option value="orange">Orange</option>
                 <option value="yellow">Yellow</option>

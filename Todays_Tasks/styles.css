@@ -163,7 +163,7 @@ body {
 .task__occupied {
   position: absolute;
   width: calc(90%);
-  height: 100px;
+  height: 1px;
   top: 100px;
   opacity: 0.69;
 }

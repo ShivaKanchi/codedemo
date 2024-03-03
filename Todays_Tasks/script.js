@@ -13,11 +13,14 @@ todaysDayEle.textContent = todaysDate;
 
 const hourlytasksWrapper = document.getElementById("taskList");
 
+const taskTabs = document.querySelector(".task__tabsList");
+
 const totalHours = 24;
 const startHour = 10;
 const endHour = 23;
 const allTodaysTask = [];
 
+let activeTaskTab = 0;
 function toggleNavbar() {
   taskHeading.classList.toggle("bottom-nav");
 }
@@ -79,9 +82,6 @@ function updateCursor(cursorEle) {
 addHours();
 let currentActiveTask = getCurrentHour();
 updateCursor(currentActiveTask[1]);
-setInterval(() => {
-  updateCursor(currentActiveTask[1]);
-}, 60000);
 
 let currentY = 0;
 window.addEventListener("scroll", () => {
@@ -99,61 +99,78 @@ addTaskButton.addEventListener("click", (e) => {
 });
 
 /*------ Storing data ------*/
-
-const listOfTasks = [
-  {
-    date: "Sat Mar 01 2024",
-    totalNumberOfTasks: 3,
-    tasks: [
-      { taskName: "Camel", taskColor: "red" },
-      { taskName: "Jv", taskColor: "orange" },
-      { taskName: "BDC", taskColor: "yellow" },
-    ],
-  },
+var tasksList = new Array();
+var listOfTasks = [
   {
     date: todaysDate,
     totalNumberOfTasks: 2,
     tasks: [
-      {
-        taskName: "SPRE",
-        taskColor: "blue",
-        time: [
-          {
-            start: "2024-03-02T06:00:11.658Z",
-            end: "2024-03-02T07:00:11.658Z",
-          },
-        ],
-        taskEfforts: 1,
-      },
-      {
-        taskName: "Jv",
-        taskColor: "orange",
-        time: [
-          {
-            start: "2024-03-02T11:00:11.658Z",
-            end: "2024-03-02T12:00:11.658Z",
-          },
-          {
-            start: "2024-03-02T13:00:11.658Z",
-            end: "2024-03-02T13:30:11.658Z",
-          },
-        ],
-        taskEfforts: 1,
-      },
+      // {
+      //   taskName: "leisure",
+      //   taskColor: "none",
+      //   time: [
+      //     {
+      //       start: "2024-03-02T06:00:11.658Z",
+      //       end: "2024-03-02T07:00:11.658Z",
+      //     },
+      //   ],
+      //   taskEfforts: 1,
+      // },
+      // {
+      //   taskName: "SPRE",
+      //   taskColor: "blue",
+      //   time: [
+      //     {
+      //       start: "2024-03-02T06:00:11.658Z",
+      //       end: "2024-03-02T07:00:11.658Z",
+      //     },
+      //   ],
+      //   taskEfforts: 1,
+      // },
+      // {
+      //   taskName: "Jv",
+      //   taskColor: "orange",
+      //   time: [
+      //     {
+      //       start: "2024-03-02T11:00:11.658Z",
+      //       end: "2024-03-02T12:00:11.658Z",
+      //     },
+      //     {
+      //       start: "2024-03-02T13:00:11.658Z",
+      //       end: "2024-03-02T13:30:11.658Z",
+      //     },
+      //   ],
+      //   taskEfforts: 1.5,
+      // },
     ],
   },
 ];
 
+const todaysTaskData = getTodaysTask(todaysDate);
+
 function storeTasks(tasks) {
+  // console.log("DATA to store", tasks);
   const dataToStore = JSON.stringify(tasks);
-  // console.log(dataToStore);
+  localStorage.removeItem("TodaysTaskManager");
   localStorage.setItem("TodaysTaskManager", dataToStore);
+  getTodaysTask(todaysDate);
+  // addTasksToTabs(todaysTaskData);
+  intializeTabs();
 }
-storeTasks(listOfTasks);
+addTasksToTabs(todaysTaskData);
+intializeTabs();
+// storeTasks(listOfTasks);
 
 function getTodaysTask(dateForTask) {
-  const dataGot = JSON.parse(localStorage.getItem("TodaysTaskManager"));
+  const dataGot =
+    localStorage.getItem("TodaysTaskManager") == null ||
+    localStorage.getItem("TodaysTaskManager").length < 0
+      ? listOfTasks
+      : JSON.parse(localStorage.getItem("TodaysTaskManager"));
+  listOfTasks = dataGot;
+  // console.log("Data local", dataGot);
   let dataToFind;
+
   dataGot.map((dateData, i) => {
     newFunction();
 
@@ -165,14 +182,26 @@ function getTodaysTask(dateForTask) {
   });
   return dataToFind;
 }
-const todaysTaskData = getTodaysTask(todaysDate);
 
+function setTodaysTask(taskData) {
+  // console.log(taskData);
+  let dataUpdated = listOfTasks.forEach((dateData, i) => {
+    if (listOfTasks[i].date.toString() == taskData.date.toString) {
+      // console.log(listOfTasks[i], taskData);
+      listOfTasks[i] = taskData;
+    }
+  });
+  // console.log("Data sent", listOfTasks, dataUpdated);
+  storeTasks(listOfTasks);
+  return listOfTasks;
+}
 /*------ Add Todays Tasks tab ------*/
-const taskTabs = document.querySelector(".task__tabsList");
 // console.log(todaysTaskData.tasks);
-var tasksList = new Array();
 
 function addTasksToTabs(tasksData) {
+  taskTabs.querySelectorAll(".task__tab").forEach((tab) => {
+    if (!tab.classList.contains("--users-task")) tab.remove();
+  });
   tasksData.tasks.forEach((task, i) => {
     tasksList.push(task);
     let tabElement = document.createElement("div");
@@ -185,24 +214,54 @@ function addTasksToTabs(tasksData) {
   });
 }
 
-addTasksToTabs(todaysTaskData);
 /*------ Tabs ------*/
-const tabs = document.querySelectorAll(".task__tab");
-tabs.forEach((tab) => {
-  tab.addEventListener("click", (e) => {
-    ativateTab(e);
-  });
-});
-
-function ativateTab(e) {
-  if (!e.currentTarget.classList.contains("active")) {
-    tabs.forEach((tab) => {
-      tab.classList.contains("active") && tab.classList.remove("active");
+function intializeTabs() {
+  taskTabs.querySelectorAll(".task__tab").forEach((tab) => {
+    tab.addEventListener("click", (e) => {
+      // activateTab(e);
+      console.log(e.currentTarget);
+      if (!e.currentTarget.classList.contains("active")) {
+        let task = e.currentTarget;
+        let taskId = task.dataset.taskId - 1;
+        activeTaskTab = taskId + 1;
+        activateTab(e);
+        updateStartTime(e, taskId);
+        updateEndTime();
+        setTodaysTask(todaysTaskData);
+        console.log(e.currentTarget);
+      }
     });
-    e.currentTarget.classList.add("active");
+  });
+}
+
+function activateTab(e) {
+  let tab = e.currentTarget;
+  taskTabs.querySelectorAll(".task__tab").forEach((tab) => {
+    tab.classList.contains("active") && tab.classList.remove("active");
+  });
+  tab.classList.add("active");
+}
+
+function updateStartTime(e, taskId) {
+  let startTime = new Date().toISOString();
+  let newstartedTime = { start: startTime, end: "" };
+  if (taskId != -1) {
+    todaysTaskData.tasks[taskId].time.push(newstartedTime);
   }
 }
 
+function updateEndTime() {
+  let endTime = new Date().toISOString();
+  let newTime =
+    todaysTaskData.tasks[activeTaskTab - 1].time[
+      todaysTaskData.tasks[activeTaskTab - 1].time.length - 1
+    ].end == ""
+      ? endTime
+      : todaysTaskData.tasks[activeTaskTab - 1].time[
+          todaysTaskData.tasks[activeTaskTab - 1].time.length - 1
+        ].end;
+  // console.log(newTime);
+}
 /*------ Occupied Time ------*/
 const onetaskHourEle = document.querySelector(".task__hour").offsetHeight;
 tasksList.forEach((task) => {
@@ -215,8 +274,8 @@ tasksList.forEach((task) => {
     );
   });
   task.taskEfforts = totalHoursSpent;
-  console.log(task.taskName, totalHoursSpent);
-  storeTasks(listOfTasks);
+  // console.log(task.taskName, totalHoursSpent);
+  // storeTasks(listOfTasks);
 });
 
 function addOccupiedTimeBar(start, end, color) {
@@ -241,3 +300,28 @@ function addOccupiedTimeBar(start, end, color) {
   hourlytasksWrapper.appendChild(occupiedTimeEle);
   return totalTime;
 }
+
+/*------ Add new tasks ------*/
+const addtaskForm = document.getElementById("addNewTask");
+const formTextInput = document.getElementById("taskName");
+const formColorInput = document.getElementById("taskColor");
+
+addtaskForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  let name = formTextInput.value;
+  let color = formColorInput.value;
+  let newTask = {
+    taskName: name,
+    taskColor: color,
+    time: [],
+    taskEfforts: 0,
+  };
+  todaysTaskData.tasks.push(newTask);
+  setTodaysTask(todaysTaskData);
+  addtaskForm.reset();
+  closeModal();
+});
+/*------ Loop ------*/
+setInterval(() => {
+  updateCursor(currentActiveTask[1]);
+}, 60000);
