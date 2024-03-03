@@ -154,11 +154,9 @@ function storeTasks(tasks) {
   localStorage.removeItem("TodaysTaskManager");
   localStorage.setItem("TodaysTaskManager", dataToStore);
   getTodaysTask(todaysDate);
-  // addTasksToTabs(todaysTaskData);
-  intializeTabs();
+  addTasksToTabs(todaysTaskData);
 }
 addTasksToTabs(todaysTaskData);
-intializeTabs();
 // storeTasks(listOfTasks);
 
 function getTodaysTask(dateForTask) {
@@ -212,11 +210,13 @@ function addTasksToTabs(tasksData) {
     tabElement.textContent = task.taskName;
     taskTabs.appendChild(tabElement);
   });
+  intializeTabs();
 }
 
 /*------ Tabs ------*/
 function intializeTabs() {
   taskTabs.querySelectorAll(".task__tab").forEach((tab) => {
+    if (tab.dataset.taskId == activeTaskTab) tab.classList.add("active");
     tab.addEventListener("click", (e) => {
       // activateTab(e);
       console.log(e.currentTarget);
