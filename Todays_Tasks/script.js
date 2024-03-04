@@ -16,11 +16,25 @@ const hourlytasksWrapper = document.getElementById("taskList");
 const taskTabs = document.querySelector(".task__tabsList");
 
 const totalHours = 24;
-const startHour = 10;
+const startHour = 0;
 const endHour = 23;
 const allTodaysTask = [];
+function setActiveTask(ID) {
+  localStorage.setItem("TodaysTaskManagerActive", ID);
+  activeTaskTab = ID;
+  setTimeout(() => {
+    updateEndTime(activeTaskTab);
+  }, 1000);
+}
 
-let activeTaskTab = 0;
+function getActiveTask() {
+  let activeNumber = localStorage.getItem("TodaysTaskManagerActive")
+    ? localStorage.getItem("TodaysTaskManagerActive")
+    : -1;
+  setActiveTask(activeNumber);
+  return parseInt(activeNumber);
+}
+var activeTaskTab = getActiveTask();
 function toggleNavbar() {
   taskHeading.classList.toggle("bottom-nav");
 }
@@ -99,6 +113,10 @@ addTaskButton.addEventListener("click", (e) => {
 
 /*------ Storing data ------*/
 var tasksList = new Array();
+const currentDate = new Date();
+const formatDateTime = (date, hours) =>
+  `${date.toISOString().slice(0, 11)}${hours}:00:00.000Z`;
+
 var listOfTasks = [
   {
     date: todaysDate,
@@ -120,8 +138,8 @@ var listOfTasks = [
         taskColor: "azure",
         time: [
           {
-            start: "2024-03-02T06:00:11.658Z",
-            end: "2024-03-02T07:00:11.658Z",
+            start: formatDateTime(currentDate, "05"),
+            end: formatDateTime(currentDate, "06"),
           },
         ],
         taskEfforts: 1,
@@ -148,11 +166,10 @@ var listOfTasks = [
 const todaysTaskData = getTodaysTask(todaysDate);
 
 function storeTasks(tasks) {
-  // console.log("DATA to store", tasks);
   const dataToStore = JSON.stringify(tasks);
   localStorage.removeItem("TodaysTaskManager");
   localStorage.setItem("TodaysTaskManager", dataToStore);
-  getTodaysTask(todaysDate);
+  // getTodaysTask(todaysDate);
   addTasksToTabs(todaysTaskData);
 }
 addTasksToTabs(todaysTaskData);
@@ -181,14 +198,12 @@ function getTodaysTask(dateForTask) {
 }
 
 function setTodaysTask(taskData) {
-  // console.log(taskData);
-  let dataUpdated = listOfTasks.forEach((dateData, i) => {
-    if (listOfTasks[i].date.toString() == taskData.date.toString) {
+  let dataUpdated = listOfTasks.map((dateData, i) => {
+    if (listOfTasks[i].date.toString() == taskData.date.toString()) {
       // console.log(listOfTasks[i], taskData);
       listOfTasks[i] = taskData;
     }
   });
-  // console.log("Data sent", listOfTasks, dataUpdated);
   storeTasks(listOfTasks);
   return listOfTasks;
 }
@@ -206,7 +221,7 @@ function addTasksToTabs(tasksData) {
     tabElement.classList.add("task__tab");
     tabElement.dataset.task = task.taskName;
     tabElement.dataset.color = task.taskColor;
-    tabElement.dataset.taskId = i + 1;
+    tabElement.dataset.taskId = i;
     tabElement.textContent = task.taskName;
     taskTabs.appendChild(tabElement);
   });
@@ -218,17 +233,15 @@ function intializeTabs() {
   taskTabs.querySelectorAll(".task__tab").forEach((tab) => {
     if (tab.dataset.taskId == activeTaskTab) tab.classList.add("active");
     tab.addEventListener("click", (e) => {
-      // activateTab(e);
-      console.log(e.currentTarget);
+      // console.log(e.currentTarget);
       if (!e.currentTarget.classList.contains("active")) {
+        updateEndTime(activeTaskTab);
         let task = e.currentTarget;
-        let taskId = task.dataset.taskId - 1;
-        activeTaskTab = taskId + 1;
+        let taskId = task.dataset.taskId;
+        setActiveTask(taskId);
         activateTab(e);
-        updateStartTime(e, taskId);
-        updateEndTime();
         setTodaysTask(todaysTaskData);
-        console.log(e.currentTarget);
+        // console.log(e.currentTarget);
       }
     });
   });
@@ -240,32 +253,36 @@ function activateTab(e) {
     tab.classList.contains("active") && tab.classList.remove("active");
   });
   tab.classList.add("active");
+  updateStartTime(e);
 }
 
-function updateStartTime(e, taskId) {
+function updateStartTime(e) {
+  let tab = e.currentTarget.dataset.taskId;
   let startTime = new Date().toISOString();
-  let newstartedTime = { start: startTime, end: "" };
-  if (taskId != -1) {
-    todaysTaskData.tasks[taskId].time.push(newstartedTime);
+  let newstartedTime = { start: startTime, end: startTime };
+  if (tab != 0) {
+    todaysTaskData.tasks[tab].time.push({ ...newstartedTime });
+    // todaysTaskData.tasks[tab].time = newstartedTime;
   }
+  // console.log(todaysTaskData);
+  setTodaysTask(todaysTaskData);
 }
 
-function updateEndTime() {
+function updateEndTime(taskId) {
   let endTime = new Date().toISOString();
-  let newTime =
-    todaysTaskData.tasks[activeTaskTab - 1].time[
-      todaysTaskData.tasks[activeTaskTab - 1].time.length - 1
-    ].end == ""
-      ? endTime
-      : todaysTaskData.tasks[activeTaskTab - 1].time[
-          todaysTaskData.tasks[activeTaskTab - 1].time.length - 1
-        ].end;
-  // console.log(newTime);
+  console.log("Inside update et", taskId, todaysTaskData.tasks[taskId]);
+  if (todaysTaskData.tasks[activeTaskTab]) {
+    let newTime = (todaysTaskData.tasks[activeTaskTab].time[
+      todaysTaskData.tasks[activeTaskTab].time.length - 1
+    ].end = endTime);
+    setTodaysTask(todaysTaskData);
+  }
 }
 /*------ Occupied Time ------*/
 const onetaskHourEle = document.querySelector(".task__hour").offsetHeight;
 tasksList.forEach((task) => {
   let totalHoursSpent = new Number();
+  totalHoursSpent = 0.0;
   task.time.forEach((timeBreak) => {
     totalHoursSpent += addOccupiedTimeBar(
       timeBreak.start,
@@ -274,8 +291,8 @@ tasksList.forEach((task) => {
     );
   });
   task.taskEfforts = totalHoursSpent;
-  // console.log(task.taskName, totalHoursSpent);
-  // storeTasks(listOfTasks);
+  console.log(task.taskName, totalHoursSpent);
+  storeTasks(listOfTasks);
 });
 
 function addOccupiedTimeBar(start, end, color) {
@@ -306,10 +323,7 @@ const addtaskForm = document.getElementById("addNewTask");
 const formTextInput = document.getElementById("taskName");
 const formColorInput = document.getElementById("taskColor");
 
-addtaskForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  let name = formTextInput.value;
-  let color = formColorInput.value;
+function addNewTask(name, color) {
   let newTask = {
     taskName: name,
     taskColor: color,
@@ -317,11 +331,20 @@ addtaskForm.addEventListener("submit", (e) => {
     taskEfforts: 0,
   };
   todaysTaskData.tasks.push(newTask);
+  todaysTaskData.totalNumberOfTasks = todaysTaskData.tasks.length;
+  console.log("addnew task", todaysTaskData, todaysTaskData.tasks);
   setTodaysTask(todaysTaskData);
+}
+
+addtaskForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  addNewTask(formTextInput.value, formColorInput.value);
   addtaskForm.reset();
   closeModal();
 });
+
 /*------ Loop ------*/
 setInterval(() => {
   updateCursor(currentActiveTask[1]);
+  setTodaysTask(todaysTaskData);
 }, 60000);
