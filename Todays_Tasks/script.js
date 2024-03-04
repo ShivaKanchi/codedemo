@@ -16,7 +16,7 @@ const hourlytasksWrapper = document.getElementById("taskList");
 const taskTabs = document.querySelector(".task__tabsList");
 
 const totalHours = 24;
-const startHour = 0;
+const startHour = 10;
 const endHour = 23;
 const allTodaysTask = [];
 function setActiveTask(ID) {
