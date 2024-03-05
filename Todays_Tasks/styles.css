@@ -343,6 +343,15 @@ body {
   color: azure;
 }
 
+.tasks__efforts {
+  padding: 8% 4%;
+}
+
+.tasks__efforts p {
+  letter-spacing: normal;
+  margin: 0;
+}
+
 @media screen and (max-width: 1023px) {
   .task__tabsWrapper {
     width: 90%;

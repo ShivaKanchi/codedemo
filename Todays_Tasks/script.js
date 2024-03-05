@@ -14,9 +14,10 @@ todaysDayEle.textContent = todaysDate;
 const hourlytasksWrapper = document.getElementById("taskList");
 
 const taskTabs = document.querySelector(".task__tabsList");
+const taskEffortsWrapper = document.querySelector(".tasks__efforts");
 
 const totalHours = 24;
-const startHour = 10;
+const startHour = 0;
 const endHour = 23;
 const allTodaysTask = [];
 function setActiveTask(ID) {
@@ -270,7 +271,7 @@ function updateStartTime(e) {
 
 function updateEndTime(taskId) {
   let endTime = new Date().toISOString();
-  console.log("Inside update et", taskId, todaysTaskData.tasks[taskId]);
+  // console.log("Inside update et", taskId, todaysTaskData.tasks[taskId]);
   if (todaysTaskData.tasks[activeTaskTab]) {
     let newTime = (todaysTaskData.tasks[activeTaskTab].time[
       todaysTaskData.tasks[activeTaskTab].time.length - 1
@@ -291,7 +292,8 @@ tasksList.forEach((task) => {
     );
   });
   task.taskEfforts = totalHoursSpent;
-  console.log(task.taskName, totalHoursSpent);
+  addTaskEffortData(task.taskName, totalHoursSpent);
+  // console.log(task.taskName, totalHoursSpent);
   storeTasks(listOfTasks);
 });
 
@@ -332,7 +334,7 @@ function addNewTask(name, color) {
   };
   todaysTaskData.tasks.push(newTask);
   todaysTaskData.totalNumberOfTasks = todaysTaskData.tasks.length;
-  console.log("addnew task", todaysTaskData, todaysTaskData.tasks);
+  // console.log("addnew task", todaysTaskData, todaysTaskData.tasks);
   setTodaysTask(todaysTaskData);
 }
 
@@ -343,8 +345,16 @@ addtaskForm.addEventListener("submit", (e) => {
   closeModal();
 });
 
+function addTaskEffortData(task, efforts) {
+  let taskEffortEle = document.createElement("p");
+  taskEffortEle.dataset.taskName = task;
+  taskEffortEle.dataset.taskEfforts = efforts;
+  taskEffortEle.textContent = `${task}: ${efforts}`;
+  taskEffortsWrapper.appendChild(taskEffortEle);
+}
 /*------ Loop ------*/
 setInterval(() => {
   updateCursor(currentActiveTask[1]);
+  updateEndTime(activeTaskTab);
   setTodaysTask(todaysTaskData);
 }, 60000);
