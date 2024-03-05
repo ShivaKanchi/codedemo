@@ -115,8 +115,12 @@ addTaskButton.addEventListener("click", (e) => {
 /*------ Storing data ------*/
 var tasksList = new Array();
 const currentDate = new Date();
-const formatDateTime = (date, hours) =>
-  `${date.toISOString().slice(0, 11)}${hours}:00:00.000Z`;
+
+const getTimeForHours = (hours) => {
+  const date = new Date(currentDate);
+  date.setHours(hours, 0, 0, 0);
+  return date.getTime();
+};
 
 var listOfTasks = [
   {
@@ -139,8 +143,8 @@ var listOfTasks = [
         taskColor: "azure",
         time: [
           {
-            start: formatDateTime(currentDate, "05"),
-            end: formatDateTime(currentDate, "06"),
+            start: getTimeForHours(10),
+            end: getTimeForHours(11),
           },
         ],
         taskEfforts: 1,
@@ -259,7 +263,7 @@ function activateTab(e) {
 
 function updateStartTime(e) {
   let tab = e.currentTarget.dataset.taskId;
-  let startTime = new Date().toISOString();
+  let startTime = new Date().getTime();
   let newstartedTime = { start: startTime, end: startTime };
   if (tab != 0) {
     todaysTaskData.tasks[tab].time.push({ ...newstartedTime });
@@ -270,7 +274,7 @@ function updateStartTime(e) {
 }
 
 function updateEndTime(taskId) {
-  let endTime = new Date().toISOString();
+  let endTime = new Date().getTime();
   // console.log("Inside update et", taskId, todaysTaskData.tasks[taskId]);
   if (todaysTaskData.tasks[activeTaskTab]) {
     let newTime = (todaysTaskData.tasks[activeTaskTab].time[
@@ -306,7 +310,7 @@ function addOccupiedTimeBar(start, end, color) {
   let startMinutes = new Date(start).getMinutes();
   let endHour = new Date(end).getHours();
   let endMinutes = new Date(end).getMinutes();
-
+  // console.log("-->", startHour, startMinutes, endHour, endMinutes);
   let startTotalMinutes = startHour * 60 + startMinutes;
   let endTotalMinutes = endHour * 60 + endMinutes;
 
