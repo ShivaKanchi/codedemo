@@ -17,7 +17,7 @@ const taskTabs = document.querySelector(".task__tabsList");
 const taskEffortsWrapper = document.querySelector(".tasks__efforts");
 
 const totalHours = 24;
-const startHour = 0;
+const startHour = 10;
 const endHour = 23;
 const allTodaysTask = [];
 function setActiveTask(ID) {
@@ -138,17 +138,17 @@ var listOfTasks = [
       //   ],
       //   taskEfforts: 1,
       // },
-      {
-        taskName: "Breakfast",
-        taskColor: "azure",
-        time: [
-          {
-            start: getTimeForHours(10),
-            end: getTimeForHours(11),
-          },
-        ],
-        taskEfforts: 1,
-      },
+      // {
+      //   taskName: "Breakfast",
+      //   taskColor: "azure",
+      //   time: [
+      //     {
+      //       start: getTimeForHours(10),
+      //       end: getTimeForHours(11),
+      //     },
+      //   ],
+      //   taskEfforts: 1,
+      // },
       // {
       //   taskName: "Jv",
       //   taskColor: "orange",
@@ -187,7 +187,6 @@ function getTodaysTask(dateForTask) {
       ? listOfTasks
       : JSON.parse(localStorage.getItem("TodaysTaskManager"));
   listOfTasks = dataGot;
-  // console.log("Data local", dataGot);
   let dataToFind;
 
   dataGot.map((dateData, i) => {
@@ -265,7 +264,7 @@ function updateStartTime(e) {
   let tab = e.currentTarget.dataset.taskId;
   let startTime = new Date().getTime();
   let newstartedTime = { start: startTime, end: startTime };
-  if (tab != 0) {
+  if (tab != -1) {
     todaysTaskData.tasks[tab].time.push({ ...newstartedTime });
     // todaysTaskData.tasks[tab].time = newstartedTime;
   }
@@ -275,12 +274,13 @@ function updateStartTime(e) {
 
 function updateEndTime(taskId) {
   let endTime = new Date().getTime();
-  // console.log("Inside update et", taskId, todaysTaskData.tasks[taskId]);
-  if (todaysTaskData.tasks[activeTaskTab]) {
-    let newTime = (todaysTaskData.tasks[activeTaskTab].time[
-      todaysTaskData.tasks[activeTaskTab].time.length - 1
-    ].end = endTime);
-    setTodaysTask(todaysTaskData);
+  if (todaysTaskData.tasks[activeTaskTab] || activeTaskTab != -1) {
+    if (todaysTaskData.tasks[activeTaskTab].time.length != 0) {
+      let newTime = (todaysTaskData.tasks[activeTaskTab].time[
+        todaysTaskData.tasks[activeTaskTab].time.length - 1
+      ].end = endTime);
+      // setTodaysTask(todaysTaskData);
+    }
   }
 }
 /*------ Occupied Time ------*/
@@ -310,7 +310,6 @@ function addOccupiedTimeBar(start, end, color) {
   let startMinutes = new Date(start).getMinutes();
   let endHour = new Date(end).getHours();
   let endMinutes = new Date(end).getMinutes();
-  // console.log("-->", startHour, startMinutes, endHour, endMinutes);
   let startTotalMinutes = startHour * 60 + startMinutes;
   let endTotalMinutes = endHour * 60 + endMinutes;
 
@@ -338,7 +337,6 @@ function addNewTask(name, color) {
   };
   todaysTaskData.tasks.push(newTask);
   todaysTaskData.totalNumberOfTasks = todaysTaskData.tasks.length;
-  // console.log("addnew task", todaysTaskData, todaysTaskData.tasks);
   setTodaysTask(todaysTaskData);
 }
 
@@ -353,7 +351,7 @@ function addTaskEffortData(task, efforts) {
   let taskEffortEle = document.createElement("p");
   taskEffortEle.dataset.taskName = task;
   taskEffortEle.dataset.taskEfforts = efforts;
-  taskEffortEle.textContent = `${task}: ${efforts}`;
+  taskEffortEle.textContent = `${task}: ${efforts.toFixed(2)}hrs`;
   taskEffortsWrapper.appendChild(taskEffortEle);
 }
 /*------ Loop ------*/
