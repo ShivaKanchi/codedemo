@@ -1,2 +1,3 @@
-# FrontendMentorC
-Solutions of FM
+# Code Demo
+
+Demo and Solutions of code concepts
