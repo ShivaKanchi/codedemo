@@ -316,7 +316,8 @@ function addOccupiedTimeBar(start, end, color) {
   let top = ((startTotalMinutes - 10 * 60) * onetaskHourEle) / 60;
   let totalTime = (endTotalMinutes - startTotalMinutes) / 60;
 
-  occupiedTimeEle.style.top = "calc(" + top + "px" + " - 3.7% )";
+  occupiedTimeEle.style.top = "calc(" + top + "px" + "  )";
+  // (time.getMinutes() * 100) / 60 + "%"
   occupiedTimeEle.style.height = totalTime * onetaskHourEle + "px";
 
   hourlytasksWrapper.appendChild(occupiedTimeEle);
