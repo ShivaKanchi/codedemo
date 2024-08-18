@@ -1,0 +1,101 @@
+.video-player__container {
+  position: relative;
+}
+
+video {
+  width: 100%;
+}
+
+.video-player__controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  padding: 10px;
+}
+
+.video-player__controls__play-pause,
+.video-player__controls__mute,
+.video-player__controls__settings {
+  background-color: transparent;
+  border: none;
+  color: white;
+  cursor: pointer;
+  margin: 0 10px;
+}
+
+.video-player__controls__seek-bar {
+  flex: 1;
+}
+
+#seekBar {
+  width: 100%;
+  -webkit-appearance: none;  /* Removes default slider look (optional) */
+  background: linear-gradient(to right, #ccc 2%, #777 98%);  /* Optional styling */
+  height: 5px;
+}
+
+#seekBar::-webkit-slider-thumb {
+  -webkit-appearance: none;  /* Removes default slider thumb look */
+  background: #fff;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+#seekBar::-moz-range-thumb {
+  /* Firefox specific styling for slider thumb */
+  background: #fff;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.video-player__controls__volume-control {
+  position: relative;
+}
+
+#volumeBar {
+  width: 50px;
+  hidden;  /* Initially hidden */
+}
+
+.video-player__controls__volume-control__tooltip {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: black;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 5px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.video-player__controls:hover .video-player__controls__volume-control.show,
+.video-player__controls__settings-tooltip {
+  opacity: 1;
+}
+
+.video-player__controls__settings-tooltip {
+  position: absolute;
+  top: 100%;
+  left: -50%;
+  transform: translateX(-50%);
+  background-color: black;
+  color: white;
+  padding: 10px;
+  border-radius: 5px;
+  display: none;
+}
+
+.video-player__controls__volume-control.show {
+  /* Styles for the volume control when shown */
+  opacity: 1;  /* Show the volume control */
+}

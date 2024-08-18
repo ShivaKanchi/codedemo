@@ -317,7 +317,12 @@ body {
 .modal__form > label[for="submitLabel"] {
   align-self: flex-end;
 }
-
+.modal__form #submitLabel {
+  cursor: pointer;
+}
+.modal__formColorInput > select {
+  cursor: pointer;
+}
 .modal__formColorInput > select > option[value="red"] {
   color: red;
 }

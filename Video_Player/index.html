@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Video Player</title>
+    <link rel="stylesheet" type="text/css" href="index.css" />
+  </head>
+  <body>
+    <div class="video-player__container">
+      <video id="myVideo" width="640" height="360">
+        <source src="assets/dream.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+      <div class="video-player__controls">
+        <button id="playPauseBtn" class="video-player__controls__play-pause">
+          play
+        </button>
+        <div class="video-player__controls__seek-bar">
+          <input type="range" id="seekBar" min="0" max="100" value="0" />
+        </div>
+        <button id="muteBtn" class="video-player__controls__mute">
+          volume_up
+        </button>
+        <div class="video-player__controls__volume-control">
+          <input
+            type="range"
+            id="volumeBar"
+            min="0"
+            max="1"
+            value="1"
+            step="0.1"
+            hidden
+          />
+          <span class="video-player__controls__volume-control__tooltip"
+            >Volume</span
+          >
+        </div>
+        <button id="settingsBtn" class="video-player__controls__settings">
+          settings
+        </button>
+        <div class="video-player__controls__settings-tooltip"></div>
+      </div>
+    </div>
+    <script src="index.js"></script>
+  </body>
+</html>
