@@ -11,14 +11,15 @@ body {
     padding-top: 120px; */
 }
 canvas {
-  border: 10px solid #333;
-  /* Another way to center a ele */
+  /* border: 10px solid #333; */
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   background: black;
+  height: 100%;
+  width: 100%;
 }
-#patternImage{
+#patternImage {
   display: none;
 }
