@@ -21,6 +21,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const startHour = 10;
   const endHour = 23;
   const allTodaysTask = [];
+
+  if (window.innerWidth <= 1023) {
+    document.documentElement.classList.remove("dark");
+    document.documentElement.classList.remove("light");
+  }
   function setActiveTask(ID) {
     localStorage.setItem("TodaysTaskManagerActive", ID);
     activeTaskTab = ID;
