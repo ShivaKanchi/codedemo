@@ -40,7 +40,16 @@ document.addEventListener("DOMContentLoaded", () => {
   function toggleNavbar() {
     taskHeading.classList.toggle("bottom-nav");
   }
-  todaysDayEle.addEventListener("click", () => toggleNavbar());
+  function toggleColorMode() {
+    console.log("toggle color");
+    document.documentElement.classList.toggle("dark");
+    document.documentElement.classList.toggle("light");
+  }
+  todaysDayEle.addEventListener("click", () => {
+    if (window.innerWidth > 1023) {
+      toggleColorMode();
+    } else toggleNavbar();
+  });
   function openModal(e, operation) {
     // let selectedHour = parseInt(e.target.parentNode.dataset.hour);
     container.classList.add("--hide");
@@ -224,7 +233,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     tasksData.tasks.forEach((task, i) => {
       tasksList.push(task);
-      let tabElement = document.createElement("div");
+      let tabElement = document.createElement("button");
       tabElement.classList.add("task__tab");
       tabElement.dataset.task = task.taskName;
       tabElement.dataset.color = task.taskColor;
