@@ -14,7 +14,12 @@ body {
   background-color: var(--bg-color);
   color-scheme: dark;
 }
-
+button {
+  outline: none;
+  background-color: unset;
+  border: unset;
+  font: inherit;
+}
 .container {
   height: 100%;
   background-color: var(--bg-color);
@@ -146,8 +151,12 @@ body {
 .task__tab[data-color="azure"] {
   color: azure;
 }
-.task__addtask {
+.task__addtask,
+#submitLabel {
   cursor: pointer;
+  border: 1px solid #000;
+  border-radius: 20%;
+  opacity: 0.5;
 }
 .task__wrapper {
   padding: 0 5%;
