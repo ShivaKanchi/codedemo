@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Three.js Solar System and Universe</title>
+        <style>
+        body { margin: 0; overflow: hidden; background-color: #000000; } /* True black background */
+        canvas { display: block; }
+        #planet-tooltip {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.8);
+            color: #000;
+            padding: 5px 10px;
+            border-radius: 5px;
+            pointer-events: none; /* Allow mouse events to pass through */
+            display: none; /* Hidden by default */
+            font-family: sans-serif;
+            font-size: 12px;
+            z-index: 10; /* Ensure it's above the canvas */
+        }
+        </style>
+    </head>
+    <body>
+        <div id="planet-tooltip"></div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+        <script>
+        let scene, camera, renderer;
+        let planets = []; // Array for the planets
+        let stars; // Variable for the star particle system
+        let sun; // Variable for the sun object
+        let mouseX = 0, mouseY = 0;
+        let windowHalfX = window.innerWidth / 2;
+        let windowHalfY = window.innerHeight / 2;
+        const planetCount = 30; // Number of planets
+        const starCount = 30000; // More stars for a universe feel
+        let pointLight; // Light source for the sun
+
+        let raycaster = new THREE.Raycaster(); // For detecting hover
+        let mouse = new THREE.Vector2(); // Mouse coordinates for raycasting
+        let hoveredPlanet = null; // To keep track of the currently hovered planet
+        let planetTooltip = document.getElementById('planet-tooltip'); // The tooltip element
+
+        // Predefined list of planet names
+        const planetNames = [
+            "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune",
+            "Pluto", "Ceres", "Vesta", "Pallas", "Hygiea", "Interamnia", "Davida", "Europa",
+            "Ganymede", "Callisto", "Io", "Titan", "Enceladus", "Miranda", "Triton", "Charon"
+        ];
+
+
+        // Initialize the scene
+        function init() {
+            // Create a scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000); // True black background
+
+            // Create a camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000); // Further view distance
+            camera.position.z = 100; // Move camera further back
+
+            // Create a renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true }); // Enable antialiasing
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            // Create the sun (light source and visual representation)
+            createSun();
+
+            // Create planets
+            createPlanets();
+
+            // Create stars (background particles)
+            createStars();
+
+            // Add event listeners for interactivity
+            document.addEventListener('mousemove', onDocumentMouseMove, false);
+            document.addEventListener('click', onDocumentMouseClick, false);
+            document.addEventListener('wheel', onDocumentMouseWheel, false); // Add mouse wheel listener
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        // Function to create the sun
+        function createSun() {
+            const geometry = new THREE.SphereGeometry(5, 64, 64); // Sphere for the sun
+            const material = new THREE.MeshBasicMaterial({ color: 0xfff000 }); // Yellowish color
+            sun = new THREE.Mesh(geometry, material);
+            scene.add(sun);
+
+            // Add a point light at the sun's position
+            pointLight = new THREE.PointLight(0xffffff, 1, 500); // White light, intensity 1, distance 500
+            pointLight.position.copy(sun.position);
+            scene.add(pointLight);
+        }
+
+        // Function to create planets
+        function createPlanets() {
+            const geometries = [
+                new THREE.SphereGeometry(1, 32, 32),
+                new THREE.SphereGeometry(1.5, 32, 32),
+                new THREE.SphereGeometry(0.8, 32, 32),
+            ];
+
+            const colors = [0x4682B4, 0x8A2BE2, 0x00CED1, 0xFF6347, 0xDAA520, 0x7CFC00, 0xFF69B4, 0xdeb887, 0xbc8f8f]; // Planet-like colors
+
+            for (let i = 0; i < planetCount; i++) {
+                const geometry = geometries[Math.floor(Math.random() * geometries.length)];
+                const material = new THREE.MeshPhongMaterial({
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    specular: 0x555555, // Grey specular
+                    shininess: 30,
+                });
+
+                const mesh = new THREE.Mesh(geometry, material);
+
+                // Set initial position in an orbit around the sun
+                const distance = Math.random() * 60 + 15; // Distance from the sun
+                const angle = Math.random() * Math.PI * 2;
+                mesh.position.x = distance * Math.cos(angle);
+                mesh.position.y = distance * Math.sin(angle);
+                mesh.position.z = (Math.random() - 0.5) * 20; // Spread out slightly on the z-axis
+
+                // Store orbit parameters, a velocity vector, and a name
+                mesh.userData.distance = distance;
+                mesh.userData.angle = angle;
+                mesh.userData.angularSpeed = (Math.random() * 0.005 + 0.001) * (Math.random() < 0.5 ? 1 : -1); // Random orbital speed and direction
+                mesh.userData.velocity = new THREE.Vector3(); // Velocity for interactions
+                // Assign a random name from the list, ensuring uniqueness if possible (for a small number of planets)
+                let name = planetNames[Math.floor(Math.random() * planetNames.length)];
+                // Basic check to avoid immediate duplicates for small planet counts
+                if (planets.length > 0 && planets[planets.length - 1].userData.name === name && planetNames.length > 1) {
+                    name = planetNames[(Math.floor(Math.random() * (planetNames.length - 1)) + planetNames.indexOf(name) + 1) % planetNames.length];
+                }
+                mesh.userData.name = name;
+
+
+                scene.add(mesh);
+                planets.push(mesh);
+            }
+        }
+
+        // Function to create a particle system (stars)
+        function createStars() {
+            const geometry = new THREE.BufferGeometry();
+            const positions = [];
+            const colors = [];
+            const color = new THREE.Color();
+
+            const starColors = [0xffffff, 0xffffdd, 0xffeecc, 0xffeebb, 0xffccaa, 0xadd8e6, 0x90ee90]; // Various star colors
+
+            for (let i = 0; i < starCount; i++) {
+                // Random position in a large sphere (universe)
+                const radius = Math.random() * 500 + 100; // Distance from the center
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos((Math.random() * 2) - 1);
+                positions.push(radius * Math.sin(phi) * Math.cos(theta));
+                positions.push(radius * Math.sin(phi) * Math.sin(theta));
+                positions.push(radius * Math.cos(phi));
+
+                // Assign a random color to each particle
+                color.set(starColors[Math.floor(Math.random() * starColors.length)]);
+                colors.push(color.r, color.g, color.b);
+            }
+
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3)); // Use vertex colors
+
+            const material = new THREE.PointsMaterial({
+                size: 0.1, // Star size
+                vertexColors: true, // Use colors from the geometry
+                transparent: true,
+                opacity: 0.9,
+                blending: THREE.AdditiveBlending // Additive blending for glowing effect
+            });
+
+            stars = new THREE.Points(geometry, material);
+            scene.add(stars);
+        }
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = performance.now() * 0.001; // Get time for animations
+
+            // Animate planets (orbital motion)
+            planets.forEach(planet => {
+                planet.userData.angle += planet.userData.angularSpeed;
+                planet.position.x = planet.userData.distance * Math.cos(planet.userData.angle);
+                planet.position.y = planet.userData.distance * Math.sin(planet.userData.angle);
+
+                // Apply velocity from interactions
+                 planet.position.add(planet.userData.velocity);
+                 // Dampen velocity over time
+                 planet.userData.velocity.multiplyScalar(0.98);
+
+                // Simple rotation on their own axis
+                planet.rotation.x += 0.005;
+                planet.rotation.y += 0.005;
+            });
+
+            // Animate stars (subtle movement)
+            const starPositions = stars.geometry.attributes.position.array;
+            for (let i = 0; i < starCount; i++) {
+                 // Add a small random drift
+                starPositions[i * 3] += (Math.random() - 0.5) * 0.001;
+                starPositions[i * 3 + 1] += (Math.random() - 0.5) * 0.001;
+                starPositions[i * 3 + 2] += (Math.random() - 0.5) * 0.001;
+
+                 // Keep stars within a large boundary (optional, for a contained universe)
+                 const starPos = new THREE.Vector3(starPositions[i * 3], starPositions[i * 3 + 1], starPositions[i * 3 + 2]);
+                 if (starPos.length() > 600) {
+                     // Reset star to a random position within the boundary
+                     const radius = Math.random() * 500 + 100;
+                     const theta = Math.random() * Math.PI * 2;
+                     const phi = Math.acos((Math.random() * 2) - 1);
+                     starPositions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+                     starPositions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+                     starPositions[i * 3 + 2] = radius * Math.cos(phi);
+                 }
+            }
+            stars.geometry.attributes.position.needsUpdate = true; // Important to update the buffer geometry
+
+            // Update tooltip position if a planet is hovered
+            if (hoveredPlanet) {
+                 const vector = new THREE.Vector3(hoveredPlanet.position.x, hoveredPlanet.position.y, hoveredPlanet.position.z);
+                 vector.project(camera);
+
+                 const screenX = (vector.x * 0.5 + 0.5) * window.innerWidth;
+                 const screenY = (-vector.y * 0.5 + 0.5) * window.innerHeight;
+
+                 planetTooltip.style.left = `${screenX + 10}px`; // Offset tooltip slightly
+                 planetTooltip.style.top = `${screenY + 10}px`;
+            }
+
+
+            // Move camera based on mouse position
+            camera.position.x += (mouseX * 0.05 - camera.position.x) * 0.01;
+            camera.position.y += (-mouseY * 0.05 - camera.position.y) * 0.01;
+            camera.lookAt(scene.position); // Make camera look at the center of the scene (the sun)
+
+            renderer.render(scene, camera);
+        }
+
+        // Handle mouse movement
+        function onDocumentMouseMove(event) {
+            mouseX = (event.clientX - windowHalfX);
+            mouseY = (event.clientY - windowHalfY);
+
+            // Update mouse coordinates for raycasting
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            // Perform raycasting to detect hover
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(planets);
+
+            if (intersects.length > 0) {
+                // If a planet is intersected
+                const intersectedPlanet = intersects[0].object;
+
+                if (hoveredPlanet !== intersectedPlanet) {
+                    // If hovering over a new planet
+                    hoveredPlanet = intersectedPlanet;
+                    planetTooltip.textContent = hoveredPlanet.userData.name;
+                    planetTooltip.style.display = 'block';
+                }
+            } else {
+                // If no planet is intersected
+                if (hoveredPlanet) {
+                    // If a planet was previously hovered, hide the tooltip
+                    hoveredPlanet = null;
+                    planetTooltip.style.display = 'none';
+                }
+            }
+        }
+
+        // Handle mouse click - Apply a temporary outward force (solar flare effect)
+        function onDocumentMouseClick(event) {
+             const raycaster = new THREE.Raycaster();
+            const mouse = new THREE.Vector2();
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            const intersects = raycaster.intersectObjects(planets); // Check intersection with planets
+
+            if (intersects.length > 0) {
+                const clickPoint = intersects[0].point;
+
+                // Apply outward force to the clicked planet and nearby planets
+                planets.forEach(planet => {
+                    const distance = planet.position.distanceTo(clickPoint);
+                    if (distance < 20) { // Affect planets within a certain radius
+                        const direction = new THREE.Vector3().subVectors(planet.position, clickPoint).normalize();
+                        const forceMagnitude = (20 - distance) * 0.8; // Stronger force closer to the click
+                        planet.userData.velocity.add(direction.multiplyScalar(forceMagnitude)); // Add force to velocity
+                    }
+                });
+
+                 // Apply outward force to nearby stars (optional, for a ripple effect)
+                const starPositions = stars.geometry.attributes.position.array;
+                for (let i = 0; i < starCount; i++) {
+                    const starIndex = i * 3;
+                    const starPosition = new THREE.Vector3(starPositions[starIndex], starPositions[starIndex + 1], starPositions[starIndex + 2]);
+                    const distance = starPosition.distanceTo(clickPoint);
+
+                    if (distance < 30) { // Affect stars within a larger radius
+                        const direction = new THREE.Vector3().subVectors(starPosition, clickPoint).normalize();
+                        const forceMagnitude = (30 - distance) * 0.5; // Stronger force for stars
+                        starPositions[starIndex] += direction.x * forceMagnitude;
+                        starPositions[starIndex + 1] += direction.y * forceMagnitude;
+                        starPositions[starIndex + 2] += direction.z * forceMagnitude;
+                    }
+                }
+                 stars.geometry.attributes.position.needsUpdate = true; // Update star positions
+
+            } else {
+                 // If no object is clicked, create a small burst of particles from the sun
+                 const burstCount = 500;
+                 const sunPosition = sun.position;
+                 const starPositions = stars.geometry.attributes.position.array;
+                 const starColors = stars.geometry.attributes.color.array;
+                 const color = new THREE.Color();
+
+                 for(let i = 0; i < burstCount; i++) {
+                     const randomIndex = Math.floor(Math.random() * starCount);
+                     const starIndex = randomIndex * 3;
+
+                     // Reset particle position to the sun's position
+                     starPositions[starIndex] = sunPosition.x;
+                     starPositions[starIndex + 1] = sunPosition.y;
+                     starPositions[starIndex + 2] = sunPosition.z;
+
+                     // Give the particle an outward velocity
+                     const direction = new THREE.Vector3(
+                         (Math.random() - 0.5) * 2,
+                         (Math.random() - 0.5) * 2,
+                         (Math.random() - 0.5) * 2
+                     ).normalize();
+                     const speed = Math.random() * 5 + 2;
+                      starPositions[starIndex] += direction.x * speed;
+                      starPositions[starIndex + 1] += direction.y * speed;
+                      starPositions[starIndex + 2] += direction.z * speed;
+
+                      // Give it a random color
+                      const colors = [0xffffff, 0xffff00, 0xffa500, 0xff4500]; // Fiery colors
+                      color.set(colors[Math.floor(Math.random() * colors.length)]);
+                      starColors[starIndex] = color.r;
+                      starColors[starIndex + 1] = color.g;
+                      starColors[starIndex + 2] = color.b;
+                 }
+                 stars.geometry.attributes.position.needsUpdate = true;
+                 stars.geometry.attributes.color.needsUpdate = true; // Update particle colors
+            }
+        }
+
+        // Handle mouse wheel for zooming
+        function onDocumentMouseWheel(event) {
+            // Adjust camera position based on wheel direction
+            camera.position.z += event.deltaY * 0.1; // Zoom in/out by changing Z position
+
+            // Optional: Limit zoom range
+            camera.position.z = Math.max(10, Math.min(500, camera.position.z)); // Keep camera between z=10 and z=500
+        }
+
+
+        // Handle window resize
+        function onWindowResize() {
+            windowHalfX = window.innerWidth / 2;
+            windowHalfY = window.innerHeight / 2;
+
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Initialize the application when the window loads
+        window.onload = function () {
+            init();
+            animate();
+        }
+        </script>
+    </body>
+</html>
