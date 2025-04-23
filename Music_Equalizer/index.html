@@ -69,7 +69,7 @@
         let scene, camera, renderer, analyser, dataArray, source, audioContext;
         let lines = []; // Array for the lines
         let stars; // The star particle system
-        let starData = []; // To store additional data per star (like shooting state)
+        let starData = []; // To store additional data per star (like shooting state, size, life)
         let mouseX = 0, mouseY = 0;
         let windowHalfX = window.innerWidth / 2;
         let windowHalfY = window.innerHeight / 2;
@@ -77,7 +77,8 @@
         // Shooting star control variables
         let isShootingStarActive = false;
         let lastShootingStarTime = 0;
-        const shootingStarInterval = 5000; // 5 seconds in milliseconds
+        const shootingStarInterval = 3000; // 3 seconds in milliseconds - Increased frequency
+        const shootingStarDuration = 1500; // Duration of shooting star effect in milliseconds
 
         // Mouse interaction variables
         let isDragging = false;
@@ -103,13 +104,16 @@
             treble: new THREE.Color(0xffffff)  // White for Treble (outer)
         };
 
-        // Predefined color palette for stars
+        // Predefined color palette for stars (more vibrant)
         const starColors = [
             0xffffff, 0xf8f8ff, 0xf0f8ff, // Shades of white
             0xe0ffff, 0xafeeee, 0xb0e0e6, // Light blues/cyans
             0xffffe0, 0xfffacd, // Pale yellows
             0xf5f5dc, 0xf0fff0, // Off-whites/greens
-            0xffe4e1, 0xffdab9 // Subtle pinks/oranges
+             0xffe4e1, 0xffdab9, // Subtle pinks/oranges
+             0xdda0dd, 0xee82ee, // Purple shades
+             0xadd8e6, 0x87cefa, // Sky blue shades
+             0x90ee90, 0x98fb98  // Light green shades
         ];
 
 
@@ -245,16 +249,21 @@
             const geometry = new THREE.BufferGeometry();
             const positions = [];
             const colors = [];
+            const sizes = []; // Buffer attribute for individual sizes
+            const lifes = []; // Buffer attribute for particle life/fading
             const color = new THREE.Color();
             starData = []; // Clear previous star data
 
-            // Realistic star colors: various whites, light blues, and subtle hints of other colors
+            // Predefined color palette for stars (more vibrant)
             const starColors = [
                 0xffffff, 0xf8f8ff, 0xf0f8ff, // Shades of white
                 0xe0ffff, 0xafeeee, 0xb0e0e6, // Light blues/cyans
                 0xffffe0, 0xfffacd, // Pale yellows
                 0xf5f5dc, 0xf0fff0, // Off-whites/greens
-                0xffe4e1, 0xffdab9 // Subtle pinks/oranges
+                 0xffe4e1, 0xffdab9, // Subtle pinks/oranges
+                 0xdda0dd, 0xee82ee, // Purple shades
+                 0xadd8e6, 0x87cefa, // Sky blue shades
+                 0x90ee90, 0x98fb98  // Light green shades
             ];
 
 
@@ -272,23 +281,33 @@
                 color.set(starColors[Math.floor(Math.random() * starColors.length)]);
                 colors.push(color.r, color.g, color.b);
 
+                // Assign a random initial size
+                const initialSize = Math.random() * 0.4 + 0.1; // Size between 0.1 and 0.5
+                sizes.push(initialSize);
+                lifes.push(1.0); // Start with full life
+
                 // Store data for shooting stars
                 starData.push({
                     isShooting: false,
                     shootingDirection: new THREE.Vector3(),
                     shootingSpeed: 0,
-                    initialPosition: new THREE.Vector3(x, y, z) // Store initial position
+                    initialPosition: new THREE.Vector3(x, y, z), // Store initial position
+                    life: 1.0, // Life for fading and sizing
+                    initialSize: initialSize // Store initial size
                 });
             }
 
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
             geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3)); // Use vertex colors
+            geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1)); // Add size attribute
+            geometry.setAttribute('life', new THREE.Float32BufferAttribute(lifes, 1)); // Add life attribute
 
             const material = new THREE.PointsMaterial({
-                size: 0.3, // Slightly larger star size for better visibility
+                size: 1, // Base size (will be scaled by the size attribute)
+                sizeAttenuation: true, // Size is affected by distance
                 vertexColors: true, // Use colors from the geometry
                 transparent: true,
-                opacity: 1.0, // Fully opaque for a brighter look
+                opacity: 1.0, // Initial opacity (will be scaled by the life attribute)
                 blending: THREE.AdditiveBlending // Additive blending for glowing effect
             });
 
@@ -534,11 +553,16 @@
 
 
                     // Update vertex colors based on amplitude and the line's current color (either initial or random)
-                    const currentColor = new THREE.Color().fromArray(colors, 0); // Get the current color from the first vertex
-                    const hue = currentColor.getHSL({h:0, s:0, l:0}).h;
-                    const saturation = currentColor.getHSL({h:0, s:0, l:0}).s;
+                    // Use the stored initialColor as the base for HSL adjustment
+                    const baseColor = line.userData.initialColor;
+                    const hsl = { h: 0, s: 0, l: 0 }; // Temporary object for HSL values
+                    baseColor.getHSL(hsl); // Get HSL from the base color
 
-                    color.setHSL(hue, saturation, 0.5 + normalizedAmplitude * 0.4); // Adjust lightness based on original normalized amplitude
+                    // Adjust lightness based on original normalized amplitude
+                    // Ensure lightness stays within a reasonable range (e.g., 0.2 to 0.9)
+                    const lightness = Math.max(0.2, Math.min(0.9, 0.5 + normalizedAmplitude * 0.4));
+                    color.setHSL(hsl.h, hsl.s, lightness); // Set color using HSL from base and adjusted lightness
+
 
                     colors[0] = color.r; // Color of the start vertex
                     colors[1] = color.g;
@@ -562,8 +586,14 @@
             // Animate stars (subtle movement and shooting stars)
             if (stars && starData.length > 0) {
                  const starPositions = stars.geometry.attributes.position.array;
+                 const starSizes = stars.geometry.attributes.size.array; // Get sizes array
+                 const starLifes = stars.geometry.attributes.life.array; // Get lifes array
+                 const starColorsArray = stars.geometry.attributes.color.array; // Get colors array
                  const starCountActual = stars.geometry.attributes.position.count;
                  const currentTime = performance.now();
+                 const deltaTime = (currentTime - (animateEqualizer.lastTime || currentTime)) / 1000; // Delta time in seconds
+                 animateEqualizer.lastTime = currentTime;
+
 
                 for (let i = 0; i < starCountActual; i++) {
                     const starIndex = i * 3;
@@ -571,26 +601,45 @@
 
                     if (currentStarData.isShooting) {
                         // Move the shooting star
-                        starPositions[starIndex] += currentStarData.shootingDirection.x * currentStarData.shootingSpeed;
-                        starPositions[starIndex + 1] += currentStarData.shootingDirection.y * currentStarData.shootingSpeed;
-                        starPositions[starIndex + 2] += currentStarData.shootingDirection.z * currentStarData.shootingSpeed;
+                        starPositions[starIndex] += currentStarData.shootingDirection.x * currentStarData.shootingSpeed * deltaTime * 60; // Scale by delta time
+                        starPositions[starIndex + 1] += currentStarData.shootingDirection.y * currentStarData.shootingSpeed * deltaTime * 60;
+                        starPositions[starIndex + 2] += currentStarData.shootingDirection.z * currentStarData.shootingSpeed * deltaTime * 60;
 
-                        // Check if the shooting star is out of bounds and reset it
-                        const starPos = new THREE.Vector3(starPositions[starIndex], starPositions[starIndex + 1], starPositions[starIndex + 2]);
-                        if (starPos.length() > 1000) { // Reset boundary
-                             // Reset to its initial position and stop shooting
-                            starPositions[starIndex] = currentStarData.initialPosition.x;
-                            starPositions[starIndex + 1] = currentStarData.initialPosition.y;
-                            starPositions[starIndex + 2] = currentStarData.initialPosition.z;
+                        // Decrease life
+                        currentStarData.life -= deltaTime / (shootingStarDuration / 1000); // Decrease life based on duration
+                        currentStarData.life = Math.max(0, currentStarData.life); // Clamp life to 0
+
+                        // Update life attribute for fading (if using alpha in material)
+                        starLifes[i] = currentStarData.life;
+
+                        // Update size based on life (grows then shrinks)
+                        const sizeFactor = 1.0 - currentStarData.life; // Goes from 0 to 1 as life goes from 1 to 0
+                        starSizes[i] = currentStarData.initialSize + sizeFactor * 1.5; // Grows up to 1.5 units larger
+
+                        // Check if the shooting star has faded out
+                        if (currentStarData.life <= 0) {
+                             // Reset to a new random position and stop shooting
+                             const radius = Math.random() * 800 + 100;
+                             const theta = Math.random() * Math.PI * 2;
+                             const phi = Math.acos((Math.random() * 2) - 1);
+                             starPositions[starIndex] = radius * Math.sin(phi) * Math.cos(theta);
+                             starPositions[starIndex + 1] = radius * Math.sin(phi) * Math.sin(theta);
+                             starPositions[starIndex + 2] = radius * Math.cos(phi);
+
+                            currentStarData.initialPosition.set(starPositions[starIndex], starPositions[starIndex + 1], starPositions[starPositions[starIndex + 2]]); // Update initial position
 
                             currentStarData.isShooting = false;
+                            currentStarData.life = 1.0; // Reset life
+                            starLifes[i] = 1.0; // Reset life attribute
+                            starSizes[i] = currentStarData.initialSize; // Reset size attribute
                             isShootingStarActive = false; // Allow a new shooting star
                         }
+
                     } else {
                         // Subtle random drift for non-shooting stars
-                         starPositions[starIndex] += (Math.random() - 0.5) * 0.01;
-                         starPositions[starIndex + 1] += (Math.random() - 0.5) * 0.01;
-                         starPositions[starIndex + 2] += (Math.random() - 0.5) * 0.01;
+                         starPositions[starIndex] += (Math.random() - 0.5) * 0.01 * deltaTime * 60; // Scale by delta time
+                         starPositions[starIndex + 1] += (Math.random() - 0.5) * 0.01 * deltaTime * 60;
+                         starPositions[starIndex + 2] += (Math.random() - 0.5) * 0.01 * deltaTime * 60;
 
                         // Keep non-shooting stars within a large boundary
                         const starPos = new THREE.Vector3(starPositions[starIndex], starPositions[starIndex + 1], starPositions[starIndex + 2]);
@@ -607,10 +656,13 @@
 
 
                         // Occasionally make a star a shooting star, respecting the interval and active state
-                        if (!isShootingStarActive && (currentTime - lastShootingStarTime > shootingStarInterval) && Math.random() < 0.0005) { // Adjusted probability
+                        if (!isShootingStarActive && (currentTime - lastShootingStarTime > shootingStarInterval) && Math.random() < 0.0002) { // Adjusted probability
+                             // Find a non-shooting star to make it a shooting star
+                             if (!currentStarData.isShooting) {
                             currentStarData.isShooting = true;
                             isShootingStarActive = true; // Set flag that a shooting star is active
                             lastShootingStarTime = currentTime; // Record the time
+                                currentStarData.life = 1.0; // Reset life for the new shooting star
 
                             // Random shooting direction
                             currentStarData.shootingDirection.set(
@@ -621,10 +673,14 @@
                             currentStarData.shootingSpeed = Math.random() * 2 + 1; // Random shooting speed
                              // Start the shooting star from its current position
                              currentStarData.initialPosition.set(starPositions[starIndex], starPositions[starIndex + 1], starPositions[starIndex + 2]);
+                                 break; // Only make one shooting star at a time
+                             }
                         }
                     }
                 }
                 stars.geometry.attributes.position.needsUpdate = true; // Important to update the buffer geometry
+                stars.geometry.attributes.size.needsUpdate = true; // Update sizes
+                stars.geometry.attributes.life.needsUpdate = true; // Update life for opacity
             }
 
 
