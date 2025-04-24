@@ -88,21 +88,14 @@
         // Initial camera position
         const initialCameraZ = 100;
         const baseLineCount = 150; // Base number of lines
-        const maxLineCount = 400; // Maximum number of lines
+        const maxLineCount = 200; // Maximum number of lines
         const minLineCount = 50; // Minimum number of lines
 
 
         // Frequency range variables
         let frequencyRanges = {}; // To store the calculated frequency bin indices
 
-        // Color palette for different frequency ranges (Initial Colors)
-        const initialFrequencyColors = {
-            // Mapping based on previous request: inner red, middle purple, outer white
-            // Now: inner grey, middle black, outer white
-            bass: new THREE.Color(0x808080),   // Grey for Bass (inner)
-            mids: new THREE.Color(0x000000),   // Black for Mids (middle)
-            treble: new THREE.Color(0xffffff)  // White for Treble (outer)
-        };
+        // Removed initialFrequencyColors as lines will start with random colors
 
         // Predefined color palette for stars (more vibrant)
         const starColors = [
@@ -204,25 +197,22 @@
                      (Math.random() - 0.5) * 0.015
                  );
 
-                 // Assign frequency range based on section and set initial color
+                 // Assign frequency range based on section
                  let frequencyRange;
-                 let initialColor;
                  // Assign colors based on index to approximate inner/middle/outer distribution
                  if (i < linesPerSection) {
                      frequencyRange = 'bass'; // Inner lines
-                     initialColor = initialFrequencyColors.bass;
                  } else if (i < linesPerSection * 2) {
                      frequencyRange = 'mids'; // Middle lines
-                     initialColor = initialFrequencyColors.mids;
                  } else {
                      frequencyRange = 'treble'; // Outer lines
-                     initialColor = initialFrequencyColors.treble;
                  }
                  line.userData.frequencyRange = frequencyRange;
 
 
-                 // Store the initial color in userData for later blending
-                 line.userData.initialColor = initialColor;
+                 // Assign a completely random initial color to this line
+                 const initialColor = new THREE.Color(Math.random(), Math.random(), Math.random());
+                 line.userData.initialColor = initialColor; // Store the random initial color
 
 
                  // Set the initial vertex colors
@@ -260,7 +250,7 @@
                 0xe0ffff, 0xafeeee, 0xb0e0e6, // Light blues/cyans
                 0xffffe0, 0xfffacd, // Pale yellows
                 0xf5f5dc, 0xf0fff0, // Off-whites/greens
-                 0xffe4e1, 0xffdab9, // Subtle pinks/oranges
+                 0xffe4e1, 0xffdab9, // Subtle pinks/orangestarColors
                  0xdda0dd, 0xee82ee, // Purple shades
                  0xadd8e6, 0x87cefa, // Sky blue shades
                  0x90ee90, 0x98fb98  // Light green shades
@@ -458,6 +448,9 @@
         function animateEqualizer() {
             requestAnimationFrame(animateEqualizer);
 
+            // Removed the rotation based on mouseX here
+
+
             if (analyser && dataArray) {
                 analyser.getByteFrequencyData(dataArray); // Get frequency data
 
@@ -490,7 +483,9 @@
                     // Add lines, distributing across frequency ranges with their assigned initial color
                     const linesPerSection = Math.floor(targetLineCount / 3);
                     let frequencyRangeToAdd;
-                    let colorToAdd;
+                    // Add new lines with random colors
+                    const colorToAdd = new THREE.Color(Math.random(), Math.random(), Math.random()); // Completely random color
+
 
                     // Simple logic to try and balance ranges when adding
                     const bassLines = lines.filter(line => line.userData.frequencyRange === 'bass').length;
@@ -499,13 +494,10 @@
 
                     if (bassLines <= midsLines && bassLines <= trebleLines) {
                         frequencyRangeToAdd = 'bass';
-                        colorToAdd = initialFrequencyColors.bass;
                     } else if (midsLines <= bassLines && midsLines <= trebleLines) {
                         frequencyRangeToAdd = 'mids';
-                        colorToAdd = initialFrequencyColors.mids;
                     } else {
                         frequencyRangeToAdd = 'treble';
-                        colorToAdd = initialFrequencyColors.treble;
                     }
                     addLine(frequencyRangeToAdd, colorToAdd);
                 }
@@ -558,10 +550,14 @@
                     const hsl = { h: 0, s: 0, l: 0 }; // Temporary object for HSL values
                     baseColor.getHSL(hsl); // Get HSL from the base color
 
-                    // Adjust lightness based on original normalized amplitude
-                    // Ensure lightness stays within a reasonable range (e.g., 0.2 to 0.9)
-                    const lightness = Math.max(0.2, Math.min(0.9, 0.5 + normalizedAmplitude * 0.4));
-                    color.setHSL(hsl.h, hsl.s, lightness); // Set color using HSL from base and adjusted lightness
+                    // Adjust lightness based on original normalized amplitude, relative to base lightness
+                    // Ensure lightness stays within a reasonable range (e.g., 0.2 to 1.0)
+                    const minLightness = 0.2; // Minimum lightness
+                    const maxLightness = 1.0; // Maximum lightness
+                    const lightnessRange = maxLightness - minLightness;
+                    const adjustedLightness = minLightness + normalizedAmplitude * lightnessRange;
+
+                    color.setHSL(hsl.h, hsl.s, adjustedLightness); // Set color using HSL from base and adjusted lightness
 
 
                     colors[0] = color.r; // Color of the start vertex
