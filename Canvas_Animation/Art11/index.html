@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Galaxy Animation</title>
+        <style>
+        body { margin: 0; overflow: hidden; background-color: #000; }
+        canvas { display: block; }
+        </style>
+    </head>
+    <body>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+        <script>
+        let scene, camera, renderer;
+        let stars, starData = [];
+        let galaxies = [];
+        let controls;
+        let isDragging = false;
+        let previousMouseX = 0, previousMouseY = 0;
+
+        // Shooting star control variables
+        let isShootingStarActive = false;
+        let lastShootingStarTime = 0;
+        const shootingStarInterval = 3000;
+        const shootingStarDuration = 1500;
+
+        // Predefined color palette for stars (more vibrant)
+        const starColors = [
+            0xffffff, 0xf8f8ff, 0xf0f8ff,
+            0xe0ffff, 0xafeeee, 0xb0e0e6,
+            0xffffe0, 0xfffacd,
+            0xf5f5dc, 0xf0fff0,
+            0xffe4e1, 0xffdab9,
+            0xdda0dd, 0xee82ee,
+            0xadd8e6, 0x87cefa,
+            0x90ee90, 0x98fb98
+        ];
+
+        // Initialize the Three.js scene
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+            scene.fog = new THREE.FogExp2(0x000000, 0.002);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+            camera.position.z = 100;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            // Create the stars background
+            createStars();
+
+            // Create galaxies with different colors
+            createGalaxies();
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x505050);
+            scene.add(ambientLight);
+            const pointLight = new THREE.PointLight(0xffffff, 0.8, 500);
+            pointLight.position.set(20, 20, 30);
+            scene.add(pointLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.3);
+            directionalLight.position.set(-1, 1, 1).normalize();
+            scene.add(directionalLight);
+
+            // Orbit Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.04;
+            controls.screenSpacePanning = false;
+            controls.minDistance = 15;
+            controls.maxDistance = 300;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.1;
+
+            // Add event listeners
+            renderer.domElement.addEventListener('mousedown', onMouseDown, false);
+            renderer.domElement.addEventListener('mouseup', onMouseUp, false);
+            renderer.domElement.addEventListener('mousemove', onMouseMove, false);
+            window.addEventListener('resize', onWindowResize, false);
+
+            // Start animation loop
+            animate();
+        }
+
+        // Create multiple galaxies with different colors
+        function createGalaxies() {
+            // Main galaxy (purple/blue)
+            const mainGalaxy = createGalaxy(50000, 400, 0, 0, 0, 0.6);
+            mainGalaxy.rotation.x = -Math.PI / 12;
+            scene.add(mainGalaxy);
+            galaxies.push(mainGalaxy);
+
+            // Smaller galaxies at different positions with different colors
+            const galaxy1 = createGalaxy(20000, 200, 100, 50, -150, 0.3); // blue-green
+            galaxies.push(galaxy1);
+            scene.add(galaxy1);
+
+            const galaxy2 = createGalaxy(15000, 150, -120, -30, 100, 0.9); // pink
+            galaxies.push(galaxy2);
+            scene.add(galaxy2);
+
+            const galaxy3 = createGalaxy(10000, 100, 80, -80, 200, 0.1); // cyan
+            galaxies.push(galaxy3);
+            scene.add(galaxy3);
+        }
+
+        // Create a single galaxy with specific hue
+        function createGalaxy(particleCount, radius, x, y, z, hue) {
+            const geometry = new THREE.BufferGeometry();
+            const positions = [];
+            const colors = [];
+            const color = new THREE.Color();
+
+            for (let i = 0; i < particleCount; i++) {
+                const theta = Math.random() * Math.PI * 2;
+                const r = Math.pow(Math.random(), 1.5) * radius;
+                const px = r * Math.cos(theta);
+                const py = THREE.MathUtils.randFloatSpread(20);
+                const pz = r * Math.sin(theta);
+                positions.push(px, py, pz);
+
+                const distanceFromCenter = Math.sqrt(px*px + pz*pz) / radius;
+                color.setHSL(hue + distanceFromCenter * 0.3, 0.8, 0.5 + Math.random() * 0.3);
+                colors.push(color.r, color.g, color.b);
+            }
+
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 0.5,
+                vertexColors: true,
+                sizeAttenuation: true,
+                transparent: true,
+                opacity: 0.8,
+                fog: true
+            });
+
+            const galaxy = new THREE.Points(geometry, material);
+            galaxy.position.set(x, y, z);
+            return galaxy;
+        }
+
+        // Function to create a particle system (stars)
+        function createStars() {
+            const starCount = 40000;
+            const geometry = new THREE.BufferGeometry();
+            const positions = [];
+            const colors = [];
+            const sizes = [];
+            const lifes = [];
+            const color = new THREE.Color();
+            starData = [];
+
+            for (let i = 0; i < starCount; i++) {
+                const radius = Math.random() * 800 + 100;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos((Math.random() * 2) - 1);
+                const x = radius * Math.sin(phi) * Math.cos(theta);
+                const y = radius * Math.sin(phi) * Math.sin(theta);
+                const z = radius * Math.cos(phi);
+                positions.push(x, y, z);
+
+                color.set(starColors[Math.floor(Math.random() * starColors.length)]);
+                colors.push(color.r, color.g, color.b);
+
+                const initialSize = Math.random() * 0.4 + 0.1;
+                sizes.push(initialSize);
+                lifes.push(1.0);
+
+                starData.push({
+                    isShooting: false,
+                    shootingDirection: new THREE.Vector3(),
+                    shootingSpeed: 0,
+                    initialPosition: new THREE.Vector3(x, y, z),
+                    life: 1.0,
+                    initialSize: initialSize
+                });
+            }
+
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
+            geometry.setAttribute('life', new THREE.Float32BufferAttribute(lifes, 1));
+
+            const material = new THREE.PointsMaterial({
+                size: 1,
+                sizeAttenuation: true,
+                vertexColors: true,
+                transparent: true,
+                opacity: 1.0,
+                blending: THREE.AdditiveBlending
+            });
+
+            stars = new THREE.Points(geometry, material);
+            scene.add(stars);
+        }
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            controls.update();
+
+            // Animate stars (shooting stars)
+            if (stars && starData.length > 0) {
+                const starPositions = stars.geometry.attributes.position.array;
+                const starSizes = stars.geometry.attributes.size.array;
+                const starLifes = stars.geometry.attributes.life.array;
+                const starCountActual = stars.geometry.attributes.position.count;
+                const currentTime = performance.now();
+                const deltaTime = (currentTime - (animate.lastTime || currentTime)) / 1000;
+                animate.lastTime = currentTime;
+
+                for (let i = 0; i < starCountActual; i++) {
+                    const starIndex = i * 3;
+                    const currentStarData = starData[i];
+
+                    if (currentStarData.isShooting) {
+                        starPositions[starIndex] += currentStarData.shootingDirection.x * currentStarData.shootingSpeed * deltaTime * 60;
+                        starPositions[starIndex + 1] += currentStarData.shootingDirection.y * currentStarData.shootingSpeed * deltaTime * 60;
+                        starPositions[starIndex + 2] += currentStarData.shootingDirection.z * currentStarData.shootingSpeed * deltaTime * 60;
+
+                        currentStarData.life -= deltaTime / (shootingStarDuration / 1000);
+                        currentStarData.life = Math.max(0, currentStarData.life);
+
+                        starLifes[i] = currentStarData.life;
+
+                        const sizeFactor = 1.0 - currentStarData.life;
+                        starSizes[i] = currentStarData.initialSize + sizeFactor * 1.5;
+
+                        if (currentStarData.life <= 0) {
+                            const radius = Math.random() * 800 + 100;
+                            const theta = Math.random() * Math.PI * 2;
+                            const phi = Math.acos((Math.random() * 2) - 1);
+                            starPositions[starIndex] = radius * Math.sin(phi) * Math.cos(theta);
+                            starPositions[starIndex + 1] = radius * Math.sin(phi) * Math.sin(theta);
+                            starPositions[starIndex + 2] = radius * Math.cos(phi);
+
+                            currentStarData.initialPosition.set(starPositions[starIndex], starPositions[starIndex + 1], starPositions[starIndex + 2]);
+
+                            currentStarData.isShooting = false;
+                            currentStarData.life = 1.0;
+                            starLifes[i] = 1.0;
+                            starSizes[i] = currentStarData.initialSize;
+                            isShootingStarActive = false;
+                        }
+
+                    } else {
+                        starPositions[starIndex] += (Math.random() - 0.5) * 0.01 * deltaTime * 60;
+                        starPositions[starIndex + 1] += (Math.random() - 0.5) * 0.01 * deltaTime * 60;
+                        starPositions[starIndex + 2] += (Math.random() - 0.5) * 0.01 * deltaTime * 60;
+
+                        const starPos = new THREE.Vector3(starPositions[starIndex], starPositions[starIndex + 1], starPositions[starIndex + 2]);
+                        if (starPos.length() > 900) {
+                            const radius = Math.random() * 800 + 50;
+                            const theta = Math.random() * Math.PI * 2;
+                            const phi = Math.acos((Math.random() * 2) - 1);
+                            starPositions[starIndex] = radius * Math.sin(phi) * Math.cos(theta);
+                            starPositions[starIndex + 1] = radius * Math.sin(phi) * Math.sin(theta);
+                            starPositions[starIndex + 2] = radius * Math.cos(phi);
+                            currentStarData.initialPosition.set(starPositions[starIndex], starPositions[starIndex + 1], starPositions[starIndex + 2]);
+                        }
+
+                        if (!isShootingStarActive && (currentTime - lastShootingStarTime > shootingStarInterval) && Math.random() < 0.0002) {
+                            if (!currentStarData.isShooting) {
+                                currentStarData.isShooting = true;
+                                isShootingStarActive = true;
+                                lastShootingStarTime = currentTime;
+                                currentStarData.life = 1.0;
+
+                                currentStarData.shootingDirection.set(
+                                    (Math.random() - 0.5) * 2,
+                                    (Math.random() - 0.5) * 2,
+                                    (Math.random() - 0.5) * 2
+                                ).normalize();
+                                currentStarData.shootingSpeed = Math.random() * 2 + 1;
+                                currentStarData.initialPosition.set(starPositions[starIndex], starPositions[starIndex + 1], starPositions[starIndex + 2]);
+                                break;
+                            }
+                        }
+                    }
+                }
+                stars.geometry.attributes.position.needsUpdate = true;
+                stars.geometry.attributes.size.needsUpdate = true;
+                stars.geometry.attributes.life.needsUpdate = true;
+            }
+
+            // Rotate galaxies
+            galaxies.forEach(galaxy => {
+                galaxy.rotation.y += 0.0001;
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        // Handle mouse down for dragging
+        function onMouseDown(event) {
+            isDragging = true;
+            previousMouseX = event.clientX;
+            previousMouseY = event.clientY;
+            controls.autoRotate = false;
+        }
+
+        // Handle mouse up for dragging
+        function onMouseUp(event) {
+            isDragging = false;
+            controls.autoRotate = true;
+        }
+
+        // Handle mouse move for dragging and rotation
+        function onMouseMove(event) {
+            if (isDragging) {
+                const deltaX = event.clientX - previousMouseX;
+                const deltaY = event.clientY - previousMouseY;
+
+                scene.rotation.y += deltaX * 0.002;
+                scene.rotation.x += deltaY * 0.002;
+
+                previousMouseX = event.clientX;
+                previousMouseY = event.clientY;
+            }
+        }
+
+        // Handle window resize
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Initialize Three.js when the window loads
+        window.onload = function () {
+            initThree();
+        }
+        </script>
+    </body>
+</html>
