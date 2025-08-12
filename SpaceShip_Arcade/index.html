@@ -39,11 +39,21 @@
         z-index: 10;
       }
       .score-display,
-      .time-display {
+      .time-display,
+      .pause-button {
         background: rgba(17, 24, 39, 0.7);
         padding: 0.5rem 1rem;
         border-radius: 9999px;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .pause-button:hover {
+        background: rgba(45, 212, 191, 0.7);
+      }
+      .ui-left {
+        display: flex;
+        gap: 1rem;
       }
       .overlay {
         position: absolute;
@@ -60,7 +70,8 @@
         z-index: 20;
       }
       .start-button,
-      .restart-button {
+      .restart-button,
+      .resume-button {
         padding: 1rem 2.5rem;
         margin-top: 1.5rem;
         font-size: 1.25rem;
@@ -74,12 +85,14 @@
         box-shadow: 0 4px 15px rgba(45, 212, 191, 0.4);
       }
       .start-button:hover,
-      .restart-button:hover {
+      .restart-button:hover,
+      .resume-button:hover {
         transform: translateY(-3px);
         box-shadow: 0 6px 20px rgba(45, 212, 191, 0.6);
       }
       .start-button:active,
-      .restart-button:active {
+      .restart-button:active,
+      .resume-button:active {
         transform: translateY(0);
         box-shadow: 0 2px 5px rgba(45, 212, 191, 0.2);
       }
@@ -87,8 +100,11 @@
   </head>
   <body>
     <div class="ui-container">
-      <div id="score" class="score-display">Score: 0</div>
-      <div id="time" class="time-display">Time: 0s</div>
+      <div class="ui-left">
+        <div id="score" class="score-display">Score: 0</div>
+        <div id="time" class="time-display">Time: 0s</div>
+      </div>
+      <button id="pauseButton" class="pause-button hidden">Pause</button>
     </div>
 
     <div id="start-overlay" class="overlay">
@@ -111,6 +127,13 @@
       <button id="restartButton" class="restart-button">Restart Game</button>
     </div>
 
+    <div id="pause-overlay" class="overlay hidden">
+      <h1 class="text-4xl md:text-6xl font-extrabold text-white mb-4">
+        Paused
+      </h1>
+      <button id="resumeButton" class="resume-button">Resume Game</button>
+    </div>
+
     <canvas id="gameCanvas"></canvas>
 
     <script>
@@ -122,23 +145,27 @@
         const bullets = [];
         const keys = {};
         let isGameOver = true;
-        let isFlyingIn = false; // New state variable for the intro animation
+        let isFlyingIn = false;
+        let isPaused = false; // New state variable for pausing the game
         let score = 0;
         let startTime;
         let asteroidSpawnTimer = 0;
-        let asteroidSpawnInterval = 1000; // milliseconds
+        let asteroidSpawnInterval = 1000;
         let gameSpeed = 1;
 
-        const stars = []; // Array to hold star objects
+        const stars = [];
         const starCount = 1000;
 
         const scoreElement = document.getElementById("score");
         const timeElement = document.getElementById("time");
         const startOverlay = document.getElementById("start-overlay");
         const gameOverOverlay = document.getElementById("gameOver-overlay");
+        const pauseOverlay = document.getElementById("pause-overlay"); // Pause overlay
         const finalScoreElement = document.getElementById("final-score");
         const startButton = document.getElementById("startButton");
         const restartButton = document.getElementById("restartButton");
+        const pauseButton = document.getElementById("pauseButton"); // Pause button
+        const resumeButton = document.getElementById("resumeButton"); // Resume button
 
         // --- Scene Setup ---
         function init() {
@@ -187,12 +214,6 @@
 
           // Spaceship
           function createSpaceship() {
-            // Placeholder cube as a spaceship
-            // const geometry = new THREE.BoxGeometry(1, 1, 3);
-            // const material = new THREE.MeshPhongMaterial({ color: 0x60a5fa });
-            // const cube = new THREE.Mesh(geometry, material);
-            // cube.rotation.x = Math.PI / 2;
-            // return cube;
             const loader = new THREE.GLTFLoader();
             loader.load(
               "assets/space-ship.glb",
@@ -207,8 +228,8 @@
               }
             );
           }
+
           spaceship = createSpaceship();
-          // scene.add(spaceship);
 
           // --- Event Handlers ---
           window.addEventListener("resize", onWindowResize, false);
@@ -217,17 +238,24 @@
           document.addEventListener("mousedown", onMouseDown, false);
           startButton.addEventListener("click", startGame);
           restartButton.addEventListener("click", startGame);
+          pauseButton.addEventListener("click", pauseGame);
+          resumeButton.addEventListener("click", unpauseGame);
+
+          // Pause the game when the window loses focus, and resume when it regains focus
+          window.addEventListener("blur", pauseGame);
+          window.addEventListener("focus", unpauseGame);
         }
 
         // --- Game Logic ---
         function startGame() {
           // Reset game state
           isGameOver = false;
-          isFlyingIn = true; // Start the fly-in animation
+          isFlyingIn = true;
+          isPaused = false;
           score = 0;
           startTime = Date.now();
           gameSpeed = 1;
-          spaceship.position.set(0, 0, -150); // Start spaceship far behind the camera
+          spaceship.position.set(0, 0, -150);
 
           // Clear existing asteroids and bullets
           asteroids.forEach((a) => scene.remove(a));
@@ -248,7 +276,9 @@
           // Hide overlays and show UI
           startOverlay.classList.add("hidden");
           gameOverOverlay.classList.add("hidden");
+          pauseOverlay.classList.add("hidden");
           document.querySelector(".ui-container").style.display = "flex";
+          pauseButton.classList.remove("hidden");
 
           // Start the animation loop
           animate();
@@ -258,10 +288,24 @@
           isGameOver = true;
           finalScoreElement.textContent = `Final Score: ${score}`;
           gameOverOverlay.classList.remove("hidden");
+          pauseButton.classList.add("hidden");
+        }
+
+        function pauseGame() {
+          if (isGameOver || isFlyingIn || isPaused) return;
+          isPaused = true;
+          pauseOverlay.classList.remove("hidden");
+        }
+
+        function unpauseGame() {
+          if (isGameOver || isFlyingIn || !isPaused) return;
+          isPaused = false;
+          pauseOverlay.classList.add("hidden");
+          animate(); // Restart the animation loop
         }
 
         function update() {
-          if (isGameOver) return;
+          if (isGameOver || isPaused) return;
 
           // Spaceship flying in animation
           if (isFlyingIn) {
@@ -294,15 +338,40 @@
 
             // Spaceship movement
             const speed = 0.1 * gameSpeed;
-            if (keys["ArrowUp"] || keys["w"]) spaceship.position.y += speed;
-            if (keys["ArrowDown"] || keys["s"]) spaceship.position.y -= speed;
-            if (keys["ArrowLeft"] || keys["a"]) spaceship.position.x -= speed;
-            if (keys["ArrowRight"] || keys["d"]) spaceship.position.x += speed;
+            let moveX = 0;
+            let moveY = 0;
 
-            // Boundary check for spaceship with edge padding
+            if (keys["ArrowUp"] || keys["w"]) moveY += 1;
+            if (keys["ArrowDown"] || keys["s"]) moveY -= 1;
+            if (keys["ArrowLeft"] || keys["a"]) moveX -= 1;
+            if (keys["ArrowRight"] || keys["d"]) moveX += 1;
+
+            spaceship.position.x += moveX * speed;
+            spaceship.position.y += moveY * speed;
+
+            // Spaceship tilting effect
+            const tiltFactor = Math.PI / 16;
+            // Tilt for left/right movement around the Z-axis
+            spaceship.rotation.z = THREE.MathUtils.lerp(
+              spaceship.rotation.z,
+              -moveX * tiltFactor,
+              0.1
+            );
+            // Tilt for up/down movement around the X-axis (added to the initial rotation)
+            spaceship.rotation.x = THREE.MathUtils.lerp(
+              spaceship.rotation.x,
+              Math.PI / 2 - moveY * tiltFactor,
+              0.1
+            );
+
+            // Boundary check for spaceship
+            // The 'edgePadding' value is increased to create a larger,
+            // more noticeable boundary from the screen edges. This is a responsive
+            // approach to the user's request for a 100px padding, as fixed pixels
+            // are not ideal in a 3D perspective projection.
             const xLimit = (window.innerWidth / window.innerHeight) * 5;
             const yLimit = 5;
-            const edgePadding = 1.5;
+            const edgePadding = 2.5; // Increased padding value
             spaceship.position.x = Math.max(
               -xLimit + edgePadding,
               Math.min(xLimit - edgePadding, spaceship.position.x)
@@ -406,9 +475,10 @@
         }
 
         // --- Main Animation Loop ---
+        let animationFrameId;
         function animate() {
-          if (isGameOver) return;
-          requestAnimationFrame(animate);
+          if (isGameOver || isPaused) return;
+          animationFrameId = requestAnimationFrame(animate);
           update();
           renderer.render(scene, camera);
         }
@@ -422,8 +492,17 @@
 
         function onKeyDown(event) {
           keys[event.key] = true;
-          if (event.key === " " && !isGameOver && !isFlyingIn) {
+          if (event.key === " " && !isGameOver && !isFlyingIn && !isPaused) {
             shootBullet();
+          }
+          if (event.key === "Escape") {
+            if (!isGameOver && !isFlyingIn) {
+              if (isPaused) {
+                unpauseGame();
+              } else {
+                pauseGame();
+              }
+            }
           }
         }
 
@@ -432,7 +511,7 @@
         }
 
         function onMouseDown(event) {
-          if (!isGameOver && !isFlyingIn) {
+          if (!isGameOver && !isFlyingIn && !isPaused) {
             shootBullet();
           }
         }
