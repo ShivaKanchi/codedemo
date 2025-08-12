@@ -3,547 +3,442 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Spaceship Survivor</title>
-    <!-- Tailwind CSS for modern styling -->
+    <title>3D Asteroid Shooter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script
-      src="https://kit.fontawesome.com/a13d339399.js"
-      crossorigin="anonymous"
-    ></script>
     <style>
-      @import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap");
       body {
-        font-family: "Orbitron", sans-serif;
-        background-color: #0b0c10;
-      }
-
-      .game-container {
-        width: 100%;
-        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        font-family: "Inter", sans-serif;
+        background-color: #0d1117;
+        color: #ffffff;
         display: flex;
         justify-content: center;
         align-items: center;
+        height: 100vh;
       }
-
       canvas {
-        background-color: #000;
-        border: 2px solid #66fcf1;
-        box-shadow: 0 0 10px #66fcf1;
-        cursor: crosshair;
-        max-width: 100%;
-        max-height: calc(100vh - 120px);
-      }
-
-      .controls {
-        position: absolute;
-        bottom: 1rem;
-        left: 50%;
-        transform: translateX(-50%);
-        display: flex;
-        gap: 1rem;
-        width: 90%;
-        justify-content: center;
-      }
-
-      .control-button {
-        background-color: #1f2833;
-        color: #66fcf1;
-        padding: 1rem 2rem;
-        border-radius: 9999px;
-        border: 2px solid #45a29e;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-          0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        user-select: none;
-        -webkit-user-select: none;
-        -moz-user-select: none;
-      }
-
-      .control-button:hover {
-        background-color: #45a29e;
-        color: #1f2833;
-      }
-
-      .control-button:active {
-        transform: scale(0.95);
-        box-shadow: none;
-      }
-
-      .game-message {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(11, 12, 16, 0.9);
-        border: 2px solid #66fcf1;
-        padding: 2rem;
+        display: block;
+        width: 100%;
+        height: 100%;
         border-radius: 1rem;
-        text-align: center;
-        color: #66fcf1;
-        font-size: 2rem;
-        display: none;
-        z-index: 100;
       }
-
-      .message-button {
-        margin-top: 1rem;
+      .ui-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 1.25rem;
+        color: #ffffff;
+        z-index: 10;
+      }
+      .score-display,
+      .time-display {
+        background: rgba(17, 24, 39, 0.7);
         padding: 0.5rem 1rem;
-        font-size: 1rem;
+        border-radius: 9999px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      }
+      .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        z-index: 20;
+      }
+      .start-button,
+      .restart-button {
+        padding: 1rem 2.5rem;
+        margin-top: 1.5rem;
+        font-size: 1.25rem;
+        font-weight: bold;
+        color: #1a202c;
+        background: linear-gradient(135deg, #38bdf8, #2dd4bf);
+        border: none;
+        border-radius: 9999px;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 4px 15px rgba(45, 212, 191, 0.4);
+      }
+      .start-button:hover,
+      .restart-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(45, 212, 191, 0.6);
+      }
+      .start-button:active,
+      .restart-button:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 5px rgba(45, 212, 191, 0.2);
       }
     </style>
   </head>
-  <body
-    class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4"
-  >
-    <div class="max-w-2xl w-full flex flex-col items-center gap-4">
-      <h1 class="text-4xl font-bold text-center text-[#66fcf1] drop-shadow-lg">
-        Spaceship Survivor
-      </h1>
-      <p class="text-sm text-gray-400 text-center">
-        Avoid the asteroids and shoot to destroy them! Use arrow keys or the
-        on-screen buttons to control the spaceship.
-      </p>
-      <div class="game-container relative w-full aspect-video">
-        <canvas id="gameCanvas" class="w-full h-full"></canvas>
-        <!-- Game over message -->
-        <div id="gameMessage" class="game-message">
-          <p id="messageText">Game Over</p>
-          <button id="restartButton" class="control-button message-button">
-            Restart
-          </button>
-        </div>
-      </div>
-      <div id="controls" class="controls lg:hidden">
-        <button id="leftButton" class="control-button">
-          <i class="fas fa-arrow-left"></i>
-        </button>
-        <button id="fireButton" class="control-button">
-          <i class="fas fa-crosshairs"></i>
-        </button>
-        <button id="rightButton" class="control-button">
-          <i class="fas fa-arrow-right"></i>
-        </button>
-      </div>
-      <div
-        class="w-full mt-4 p-4 text-center text-gray-400 rounded-lg border border-gray-700 bg-gray-800 hidden lg:block"
-      >
-        <p>
-          Use the <span class="font-bold text-[#66fcf1]">Left Arrow</span> and
-          <span class="font-bold text-[#66fcf1]">Right Arrow</span> keys to
-          move. Press <span class="font-bold text-[#66fcf1]">Spacebar</span> to
-          fire.
-        </p>
-      </div>
+  <body>
+    <div class="ui-container">
+      <div id="score" class="score-display">Score: 0</div>
+      <div id="time" class="time-display">Time: 0s</div>
     </div>
 
+    <div id="start-overlay" class="overlay">
+      <h1 class="text-4xl md:text-6xl font-extrabold text-white mb-4">
+        Asteroid Defender
+      </h1>
+      <p class="text-lg md:text-xl text-gray-300 mb-6">
+        Use WASD or arrow keys to move, Space or mouse click to shoot.
+      </p>
+      <button id="startButton" class="start-button">Start Game</button>
+    </div>
+
+    <div id="gameOver-overlay" class="overlay hidden">
+      <h1 class="text-4xl md:text-6xl font-extrabold text-red-500 mb-4">
+        Game Over
+      </h1>
+      <p id="final-score" class="text-xl md:text-2xl text-gray-300 mb-6">
+        Final Score: 0
+      </p>
+      <button id="restartButton" class="restart-button">Restart Game</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
     <script>
-      // --- Canvas and Context Setup ---
-      const canvas = document.getElementById("gameCanvas");
-      const ctx = canvas.getContext("2d");
-      const gameMessage = document.getElementById("gameMessage");
-      const messageText = document.getElementById("messageText");
-      const restartButton = document.getElementById("restartButton");
-      const leftButton = document.getElementById("leftButton");
-      const rightButton = document.getElementById("rightButton");
-      const fireButton = document.getElementById("fireButton");
-
-      let animationFrameId;
-
-      // --- Game State Variables ---
-      let score = 0;
-      let isGameOver = false;
-      let keys = {};
-
-      // --- Game Objects ---
-
-      // Player object with improved design
-      const player = {
-        x: canvas.width / 2,
-        y: canvas.height - 50,
-        width: 30,
-        height: 30,
-        speed: 5,
-        draw() {
-          ctx.save();
-          ctx.translate(this.x, this.y);
-
-          // Draw main body with a gradient
-          const gradient = ctx.createLinearGradient(
-            0,
-            -this.height / 2,
-            0,
-            this.height / 2
-          );
-          gradient.addColorStop(0, "#66fcf1");
-          gradient.addColorStop(1, "#45a29e");
-          ctx.fillStyle = gradient;
-          ctx.beginPath();
-          ctx.moveTo(0, -this.height);
-          ctx.lineTo(-this.width / 2, this.height / 2);
-          ctx.lineTo(this.width / 2, this.height / 2);
-          ctx.closePath();
-          ctx.fill();
-
-          // Draw thruster flames
-          const flameHeight = Math.random() * 10 + 10;
-          const flameWidth = this.width * 0.6;
-          const flameGradient = ctx.createLinearGradient(
-            0,
-            this.height / 2,
-            0,
-            this.height / 2 + flameHeight
-          );
-          flameGradient.addColorStop(0, "#f97316");
-          flameGradient.addColorStop(1, "rgba(255, 100, 0, 0)");
-          ctx.fillStyle = flameGradient;
-          ctx.beginPath();
-          ctx.moveTo(-flameWidth / 2, this.height / 2);
-          ctx.lineTo(0, this.height / 2 + flameHeight);
-          ctx.lineTo(flameWidth / 2, this.height / 2);
-          ctx.closePath();
-          ctx.fill();
-
-          ctx.restore();
-        },
-        move() {
-          if (keys["ArrowLeft"] || keys["KeyA"]) {
-            this.x -= this.speed;
-          }
-          if (keys["ArrowRight"] || keys["KeyD"]) {
-            this.x += this.speed;
-          }
-          // Keep player within canvas bounds
-          if (this.x < this.width / 2) this.x = this.width / 2;
-          if (this.x > canvas.width - this.width / 2)
-            this.x = canvas.width - this.width / 2;
-        },
-      };
-
-      // Bullets array
-      let bullets = [];
-      class Bullet {
-        constructor(x, y) {
-          this.x = x;
-          this.y = y;
-          this.width = 4;
-          this.height = 10;
-          this.speed = 7;
-        }
-        draw() {
-          ctx.fillStyle = "#45a29e";
-          ctx.fillRect(
-            this.x - this.width / 2,
-            this.y,
-            this.width,
-            this.height
-          );
-        }
-        update() {
-          this.y -= this.speed;
-        }
-      }
-
-      // Asteroids array
-      let enemies = [];
-      let enemySpawnInterval;
-      class Enemy {
-        constructor(x, y) {
-          this.x = x;
-          this.y = y;
-          this.size = Math.random() * 20 + 20; // Random size
-          this.speed = Math.random() * 2 + 1; // Random speed
-          this.rotation = 0;
-          this.rotationSpeed = (Math.random() - 0.5) * 0.05;
-          this.shapePoints = this.generateShape();
-        }
-        // Generates a more complex, jagged asteroid shape
-        generateShape() {
-          const points = [];
-          const numPoints = Math.random() * 5 + 8;
-          for (let i = 0; i < numPoints; i++) {
-            const angle = ((Math.PI * 2) / numPoints) * i;
-            const radius =
-              this.size + (Math.random() - 0.5) * (this.size * 0.4);
-            points.push({
-              x: Math.cos(angle) * radius,
-              y: Math.sin(angle) * radius,
-            });
-          }
-          return points;
-        }
-        draw() {
-          ctx.save();
-          ctx.translate(this.x, this.y);
-          ctx.rotate(this.rotation);
-
-          // Draw asteroid with a radial gradient
-          const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.size);
-          gradient.addColorStop(0, "#c5c6c7");
-          gradient.addColorStop(1, "#4b5563");
-          ctx.fillStyle = gradient;
-          ctx.strokeStyle = "#66fcf1";
-          ctx.lineWidth = 2;
-
-          ctx.beginPath();
-          ctx.moveTo(this.shapePoints[0].x, this.shapePoints[0].y);
-          for (let i = 1; i < this.shapePoints.length; i++) {
-            ctx.lineTo(this.shapePoints[i].x, this.shapePoints[i].y);
-          }
-          ctx.closePath();
-          ctx.fill();
-          ctx.stroke();
-
-          ctx.restore();
-        }
-        update() {
-          this.y += this.speed;
-          this.rotation += this.rotationSpeed;
-        }
-      }
-
-      // Stars array for the background
-      let stars = [];
-      class Star {
-        constructor() {
-          this.x = Math.random() * canvas.width;
-          this.y = Math.random() * canvas.height;
-          this.size = Math.random() * 2;
-          this.speed = Math.random() * 0.5 + 0.1;
-          this.opacity = Math.random();
-        }
-        draw() {
-          ctx.save();
-          ctx.globalAlpha = this.opacity;
-          ctx.fillStyle = "#FFFFFF";
-          ctx.beginPath();
-          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-        }
-        update() {
-          this.y += this.speed;
-          // Reset star when it goes off-screen
-          if (this.y > canvas.height) {
-            this.y = 0;
-            this.x = Math.random() * canvas.width;
-          }
-        }
-      }
-
-      // --- Event Listeners ---
-
-      // Keyboard controls
-      document.addEventListener("keydown", (e) => {
-        if (isGameOver) return;
-        keys[e.code] = true;
-        if (e.code === "Space") {
-          e.preventDefault(); // Prevent page scrolling
-          fireBullet();
-        }
-      });
-      document.addEventListener("keyup", (e) => {
-        if (isGameOver) return;
-        keys[e.code] = false;
-      });
-
-      // Mobile controls
-      leftButton.addEventListener("touchstart", (e) => {
-        e.preventDefault();
-        keys["ArrowLeft"] = true;
-      });
-      leftButton.addEventListener("touchend", (e) => {
-        e.preventDefault();
-        keys["ArrowLeft"] = false;
-      });
-      rightButton.addEventListener("touchstart", (e) => {
-        e.preventDefault();
-        keys["ArrowRight"] = true;
-      });
-      rightButton.addEventListener("touchend", (e) => {
-        e.preventDefault();
-        keys["ArrowRight"] = false;
-      });
-      fireButton.addEventListener("touchstart", (e) => {
-        e.preventDefault();
-        fireBullet();
-      });
-      fireButton.addEventListener("touchend", (e) => {
-        e.preventDefault();
-      }); // This ensures the touch event is handled properly
-
-      restartButton.addEventListener("click", () => {
-        resetGame();
-      });
-
-      // Resize the canvas to fit the window while maintaining aspect ratio
-      function resizeCanvas() {
-        const container = canvas.parentElement;
-        const containerWidth = container.clientWidth;
-        const containerHeight = container.clientHeight;
-        const aspectRatio = 16 / 9; // Desired aspect ratio
-
-        if (containerWidth / containerHeight > aspectRatio) {
-          canvas.height = containerHeight;
-          canvas.width = containerHeight * aspectRatio;
-        } else {
-          canvas.width = containerWidth;
-          canvas.height = containerWidth / aspectRatio;
-        }
-        player.x = canvas.width / 2;
-        player.y = canvas.height - 50;
-      }
-
-      window.addEventListener("resize", resizeCanvas);
-
-      // --- Game Functions ---
-
-      // Function to fire a bullet
-      function fireBullet() {
-        if (bullets.length < 5) {
-          // Limit bullets on screen
-          bullets.push(new Bullet(player.x, player.y));
-        }
-      }
-
-      // Helper function for collision detection
-      function checkCollision(obj1, obj2) {
-        const dx = obj1.x - obj2.x;
-        const dy = obj1.y - obj2.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        return (
-          distance <
-          (obj1.width || obj1.size) / 2 + (obj2.width || obj2.size) / 2
-        );
-      }
-
-      // Main update logic
-      function update() {
-        if (isGameOver) return;
-
-        // Player movement
-        player.move();
-
-        // Update stars
-        stars.forEach((star) => star.update());
-
-        // Create new arrays for objects that survive the frame
-        const remainingBullets = [];
-        const remainingEnemies = [];
-        const hitEnemies = new Set();
-
-        // Bullet update and collision check with enemies
-        for (const bullet of bullets) {
-          bullet.update();
-          let bulletHitEnemy = false;
-          for (let i = 0; i < enemies.length; i++) {
-            // Skip if the enemy is already marked for removal
-            if (hitEnemies.has(enemies[i])) {
-              continue;
-            }
-            if (checkCollision(bullet, enemies[i])) {
-              score += 10;
-              bulletHitEnemy = true;
-              hitEnemies.add(enemies[i]); // Mark enemy as hit
-              break; // A bullet can only hit one enemy
-            }
-          }
-          // Keep bullets that didn't hit an enemy and are still on screen
-          if (!bulletHitEnemy && bullet.y > 0) {
-            remainingBullets.push(bullet);
-          }
-        }
-        bullets = remainingBullets;
-
-        // Enemy update and collision check with player
-        for (const enemy of enemies) {
-          // If the enemy was not hit by a bullet
-          if (!hitEnemies.has(enemy)) {
-            enemy.update();
-            // Check for collision with player
-            if (checkCollision(player, enemy)) {
-              gameOver();
-              return; // Exit update loop immediately
-            }
-            // Keep enemies that are on screen
-            if (enemy.y < canvas.height) {
-              remainingEnemies.push(enemy);
-            }
-          }
-        }
-        enemies = remainingEnemies;
-      }
-
-      // Draw everything
-      function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Draw stars first
-        stars.forEach((star) => star.draw());
-
-        // Draw player
-        player.draw();
-
-        // Draw bullets
-        bullets.forEach((bullet) => bullet.draw());
-
-        // Draw enemies
-        enemies.forEach((enemy) => enemy.draw());
-
-        // Draw score
-        ctx.fillStyle = "#c5c6c7";
-        ctx.font = "16px Orbitron";
-        ctx.textAlign = "left";
-        ctx.fillText(`Score: ${score}`, 10, 20);
-      }
-
-      // Main game loop
-      function gameLoop() {
-        update();
-        draw();
-        animationFrameId = requestAnimationFrame(gameLoop);
-      }
-
-      // Game over function
-      function gameOver() {
-        isGameOver = true;
-        cancelAnimationFrame(animationFrameId);
-        clearInterval(enemySpawnInterval);
-        messageText.textContent = `Game Over! Your score: ${score}`;
-        gameMessage.style.display = "block";
-      }
-
-      // Restart game function
-      function resetGame() {
-        isGameOver = false;
-        score = 0;
-        enemies = [];
-        bullets = [];
-        stars = [];
-        gameMessage.style.display = "none";
-        player.x = canvas.width / 2;
-        player.y = canvas.height - 50;
-
-        // Populate initial starfield
-        for (let i = 0; i < 100; i++) {
-          stars.push(new Star());
-        }
-
-        // Start spawning enemies
-        enemySpawnInterval = setInterval(() => {
-          if (!isGameOver) {
-            const x = Math.random() * canvas.width;
-            enemies.push(new Enemy(x, -50));
-          }
-        }, 1000);
-
-        gameLoop();
-      }
-
-      // --- Initialization ---
       window.onload = function () {
-        resizeCanvas();
-        resetGame();
+        // --- Global Variables and Game State ---
+        let scene, camera, renderer;
+        let spaceship;
+        const asteroids = [];
+        const bullets = [];
+        const keys = {};
+        let isGameOver = true;
+        let isFlyingIn = false; // New state variable for the intro animation
+        let score = 0;
+        let startTime;
+        let asteroidSpawnTimer = 0;
+        let asteroidSpawnInterval = 1000; // milliseconds
+        let gameSpeed = 1;
+
+        const stars = []; // Array to hold star objects
+        const starCount = 1000;
+
+        const scoreElement = document.getElementById("score");
+        const timeElement = document.getElementById("time");
+        const startOverlay = document.getElementById("start-overlay");
+        const gameOverOverlay = document.getElementById("gameOver-overlay");
+        const finalScoreElement = document.getElementById("final-score");
+        const startButton = document.getElementById("startButton");
+        const restartButton = document.getElementById("restartButton");
+
+        // --- Scene Setup ---
+        function init() {
+          const canvas = document.getElementById("gameCanvas");
+
+          // Scene
+          scene = new THREE.Scene();
+          scene.background = new THREE.Color(0x0a0a1a);
+
+          // Add stars to the scene for a sense of depth
+          const starGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+          const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+          for (let i = 0; i < starCount; i++) {
+            const star = new THREE.Mesh(starGeometry, starMaterial);
+            star.position.set(
+              (Math.random() - 0.5) * 200,
+              (Math.random() - 0.5) * 200,
+              (Math.random() - 0.5) * 200
+            );
+            stars.push(star);
+            scene.add(star);
+          }
+
+          // Camera
+          camera = new THREE.PerspectiveCamera(
+            75,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+          );
+          camera.position.set(0, 0, 10);
+
+          // Renderer
+          renderer = new THREE.WebGLRenderer({
+            canvas: canvas,
+            antialias: true,
+          });
+          renderer.setSize(window.innerWidth, window.innerHeight);
+
+          // Lighting
+          const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+          scene.add(ambientLight);
+          const pointLight = new THREE.PointLight(0xffffff, 1, 1000);
+          pointLight.position.set(0, 0, 100);
+          scene.add(pointLight);
+
+          // Spaceship
+          function createSpaceship() {
+            // Placeholder cube as a spaceship
+            // const geometry = new THREE.BoxGeometry(1, 1, 3);
+            // const material = new THREE.MeshPhongMaterial({ color: 0x60a5fa });
+            // const cube = new THREE.Mesh(geometry, material);
+            // cube.rotation.x = Math.PI / 2;
+            // return cube;
+            const loader = new THREE.GLTFLoader();
+            loader.load(
+              "assets/space-ship.glb",
+              function (gltf) {
+                spaceship = gltf.scene;
+                spaceship.scale.set(0.5, 0.5, 0.5); // Adjust scale as needed
+                scene.add(spaceship);
+              },
+              undefined,
+              function (error) {
+                console.error(error);
+              }
+            );
+          }
+          spaceship = createSpaceship();
+          // scene.add(spaceship);
+
+          // --- Event Handlers ---
+          window.addEventListener("resize", onWindowResize, false);
+          document.addEventListener("keydown", onKeyDown, false);
+          document.addEventListener("keyup", onKeyUp, false);
+          document.addEventListener("mousedown", onMouseDown, false);
+          startButton.addEventListener("click", startGame);
+          restartButton.addEventListener("click", startGame);
+        }
+
+        // --- Game Logic ---
+        function startGame() {
+          // Reset game state
+          isGameOver = false;
+          isFlyingIn = true; // Start the fly-in animation
+          score = 0;
+          startTime = Date.now();
+          gameSpeed = 1;
+          spaceship.position.set(0, 0, -150); // Start spaceship far behind the camera
+
+          // Clear existing asteroids and bullets
+          asteroids.forEach((a) => scene.remove(a));
+          bullets.forEach((b) => scene.remove(b));
+          asteroids.length = 0;
+          bullets.length = 0;
+
+          // Reset star positions for a fresh start
+          for (let i = 0; i < starCount; i++) {
+            const star = stars[i];
+            star.position.set(
+              (Math.random() - 0.5) * 200,
+              (Math.random() - 0.5) * 200,
+              (Math.random() - 0.5) * 200
+            );
+          }
+
+          // Hide overlays and show UI
+          startOverlay.classList.add("hidden");
+          gameOverOverlay.classList.add("hidden");
+          document.querySelector(".ui-container").style.display = "flex";
+
+          // Start the animation loop
+          animate();
+        }
+
+        function gameOver() {
+          isGameOver = true;
+          finalScoreElement.textContent = `Final Score: ${score}`;
+          gameOverOverlay.classList.remove("hidden");
+        }
+
+        function update() {
+          if (isGameOver) return;
+
+          // Spaceship flying in animation
+          if (isFlyingIn) {
+            spaceship.position.z += 1.0;
+            if (spaceship.position.z >= 5) {
+              isFlyingIn = false;
+              spaceship.position.z = 5;
+            }
+          }
+
+          // Update stars for streaking effect
+          for (const star of stars) {
+            star.position.z += 0.5 * gameSpeed;
+            if (star.position.z > camera.position.z + 5) {
+              star.position.z = -200;
+              star.position.x = (Math.random() - 0.5) * 200;
+              star.position.y = (Math.random() - 0.5) * 200;
+            }
+          }
+
+          // Normal game logic starts here
+          if (!isFlyingIn) {
+            // Update score and time
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            timeElement.textContent = `Time: ${elapsed}s`;
+            scoreElement.textContent = `Score: ${score}`;
+
+            // Increase game speed over time
+            gameSpeed = 1 + elapsed / 30;
+
+            // Spaceship movement
+            const speed = 0.1 * gameSpeed;
+            if (keys["ArrowUp"] || keys["w"]) spaceship.position.y += speed;
+            if (keys["ArrowDown"] || keys["s"]) spaceship.position.y -= speed;
+            if (keys["ArrowLeft"] || keys["a"]) spaceship.position.x -= speed;
+            if (keys["ArrowRight"] || keys["d"]) spaceship.position.x += speed;
+
+            // Boundary check for spaceship with edge padding
+            const xLimit = (window.innerWidth / window.innerHeight) * 5;
+            const yLimit = 5;
+            const edgePadding = 1.5;
+            spaceship.position.x = Math.max(
+              -xLimit + edgePadding,
+              Math.min(xLimit - edgePadding, spaceship.position.x)
+            );
+            spaceship.position.y = Math.max(
+              -yLimit + edgePadding,
+              Math.min(yLimit - edgePadding, spaceship.position.y)
+            );
+
+            // Spawn asteroids
+            asteroidSpawnTimer += 1000 / 60;
+            const currentSpawnInterval = Math.max(
+              100,
+              asteroidSpawnInterval / gameSpeed
+            );
+            if (asteroidSpawnTimer > currentSpawnInterval) {
+              spawnAsteroid();
+              asteroidSpawnTimer = 0;
+            }
+
+            // Update asteroids
+            for (let i = asteroids.length - 1; i >= 0; i--) {
+              const asteroid = asteroids[i];
+              asteroid.position.z += 0.3 * gameSpeed;
+
+              if (checkCollision(spaceship, asteroid)) {
+                gameOver();
+                return;
+              }
+
+              if (asteroid.position.z > camera.position.z + 5) {
+                scene.remove(asteroid);
+                asteroids.splice(i, 1);
+              }
+            }
+
+            // Update bullets
+            for (let i = bullets.length - 1; i >= 0; i--) {
+              const bullet = bullets[i];
+              bullet.position.z -= 0.5 * gameSpeed;
+
+              for (let j = asteroids.length - 1; j >= 0; j--) {
+                const asteroid = asteroids[j];
+                if (checkCollision(bullet, asteroid)) {
+                  scene.remove(bullet);
+                  bullets.splice(i, 1);
+                  scene.remove(asteroid);
+                  asteroids.splice(j, 1);
+                  score += 10;
+                  break;
+                }
+              }
+
+              if (bullet.position.z < -200) {
+                scene.remove(bullet);
+                bullets.splice(i, 1);
+              }
+            }
+          }
+        }
+
+        function spawnAsteroid() {
+          const geometry = new THREE.DodecahedronGeometry(
+            Math.random() * 1.5 + 0.7
+          );
+          const material = new THREE.MeshPhongMaterial({
+            color: 0x9d8469,
+            shininess: 10,
+          });
+          const asteroid = new THREE.Mesh(geometry, material);
+
+          const x =
+            (((Math.random() - 0.5) * window.innerWidth) / window.innerHeight) *
+            20;
+          const y = (Math.random() - 0.5) * 20;
+          asteroid.position.set(x, y, -200);
+
+          asteroids.push(asteroid);
+          scene.add(asteroid);
+        }
+
+        function shootBullet() {
+          if (isGameOver || isFlyingIn) return;
+          const geometry = new THREE.SphereGeometry(0.1, 8, 8);
+          const material = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+          const bullet = new THREE.Mesh(geometry, material);
+          bullet.position.set(
+            spaceship.position.x,
+            spaceship.position.y,
+            spaceship.position.z
+          );
+          bullets.push(bullet);
+          scene.add(bullet);
+        }
+
+        // Simple Axis-Aligned Bounding Box (AABB) collision detection
+        function checkCollision(obj1, obj2) {
+          const box1 = new THREE.Box3().setFromObject(obj1);
+          const box2 = new THREE.Box3().setFromObject(obj2);
+          return box1.intersectsBox(box2);
+        }
+
+        // --- Main Animation Loop ---
+        function animate() {
+          if (isGameOver) return;
+          requestAnimationFrame(animate);
+          update();
+          renderer.render(scene, camera);
+        }
+
+        // --- Event Handlers ---
+        function onWindowResize() {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onKeyDown(event) {
+          keys[event.key] = true;
+          if (event.key === " " && !isGameOver && !isFlyingIn) {
+            shootBullet();
+          }
+        }
+
+        function onKeyUp(event) {
+          keys[event.key] = false;
+        }
+
+        function onMouseDown(event) {
+          if (!isGameOver && !isFlyingIn) {
+            shootBullet();
+          }
+        }
+
+        // --- Initialization ---
+        init();
       };
     </script>
   </body>
