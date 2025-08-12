@@ -112,7 +112,10 @@
         Asteroid Defender
       </h1>
       <p class="text-lg md:text-xl text-gray-300 mb-6">
-        Use WASD or arrow keys to move, Space or mouse click to shoot.
+        Desktop: Use WASD or arrow keys to move, Space or mouse click to shoot.
+      </p>
+      <p class="text-lg md:text-xl text-gray-300 mb-6">
+        Mobile: Drag to move, tap to shoot.
       </p>
       <button id="startButton" class="start-button">Start Game</button>
     </div>
@@ -146,12 +149,20 @@
         const keys = {};
         let isGameOver = true;
         let isFlyingIn = false;
-        let isPaused = false; // New state variable for pausing the game
+        let isPaused = false;
         let score = 0;
         let startTime;
         let asteroidSpawnTimer = 0;
         let asteroidSpawnInterval = 1000;
         let gameSpeed = 1;
+
+        // Variables for touch controls
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let lastTouchX = 0;
+        let lastTouchY = 0;
+        let isDragging = false;
+        const touchMoveSensitivity = 0.05;
 
         const stars = [];
         const starCount = 1000;
@@ -160,12 +171,12 @@
         const timeElement = document.getElementById("time");
         const startOverlay = document.getElementById("start-overlay");
         const gameOverOverlay = document.getElementById("gameOver-overlay");
-        const pauseOverlay = document.getElementById("pause-overlay"); // Pause overlay
+        const pauseOverlay = document.getElementById("pause-overlay");
         const finalScoreElement = document.getElementById("final-score");
         const startButton = document.getElementById("startButton");
         const restartButton = document.getElementById("restartButton");
-        const pauseButton = document.getElementById("pauseButton"); // Pause button
-        const resumeButton = document.getElementById("resumeButton"); // Resume button
+        const pauseButton = document.getElementById("pauseButton");
+        const resumeButton = document.getElementById("resumeButton");
 
         // --- Scene Setup ---
         function init() {
@@ -241,14 +252,17 @@
           pauseButton.addEventListener("click", pauseGame);
           resumeButton.addEventListener("click", unpauseGame);
 
-          // Pause the game when the window loses focus, and resume when it regains focus
+          // Mobile touch events
+          canvas.addEventListener("touchstart", onTouchStart, false);
+          canvas.addEventListener("touchmove", onTouchMove, false);
+          canvas.addEventListener("touchend", onTouchEnd, false);
+
           window.addEventListener("blur", pauseGame);
           window.addEventListener("focus", unpauseGame);
         }
 
         // --- Game Logic ---
         function startGame() {
-          // Reset game state
           isGameOver = false;
           isFlyingIn = true;
           isPaused = false;
@@ -257,13 +271,11 @@
           gameSpeed = 1;
           spaceship.position.set(0, 0, -150);
 
-          // Clear existing asteroids and bullets
           asteroids.forEach((a) => scene.remove(a));
           bullets.forEach((b) => scene.remove(b));
           asteroids.length = 0;
           bullets.length = 0;
 
-          // Reset star positions for a fresh start
           for (let i = 0; i < starCount; i++) {
             const star = stars[i];
             star.position.set(
@@ -273,14 +285,12 @@
             );
           }
 
-          // Hide overlays and show UI
           startOverlay.classList.add("hidden");
           gameOverOverlay.classList.add("hidden");
           pauseOverlay.classList.add("hidden");
           document.querySelector(".ui-container").style.display = "flex";
           pauseButton.classList.remove("hidden");
 
-          // Start the animation loop
           animate();
         }
 
@@ -301,7 +311,7 @@
           if (isGameOver || isFlyingIn || !isPaused) return;
           isPaused = false;
           pauseOverlay.classList.add("hidden");
-          animate(); // Restart the animation loop
+          animate();
         }
 
         function update() {
@@ -351,13 +361,11 @@
 
             // Spaceship tilting effect
             const tiltFactor = Math.PI / 16;
-            // Tilt for left/right movement around the Z-axis
             spaceship.rotation.z = THREE.MathUtils.lerp(
               spaceship.rotation.z,
               -moveX * tiltFactor,
               0.1
             );
-            // Tilt for up/down movement around the X-axis (added to the initial rotation)
             spaceship.rotation.x = THREE.MathUtils.lerp(
               spaceship.rotation.x,
               Math.PI / 2 - moveY * tiltFactor,
@@ -365,20 +373,22 @@
             );
 
             // Boundary check for spaceship
-            // The 'edgePadding' value is increased to create a larger,
-            // more noticeable boundary from the screen edges. This is a responsive
-            // approach to the user's request for a 100px padding, as fixed pixels
-            // are not ideal in a 3D perspective projection.
-            const xLimit = (window.innerWidth / window.innerHeight) * 5;
-            const yLimit = 5;
-            const edgePadding = 2.5; // Increased padding value
+            const padding = 2.5;
+            const aspect = window.innerWidth / window.innerHeight;
+            const frustumHeight =
+              camera.position.z * Math.tan((camera.fov * Math.PI) / 360) * 2;
+            const frustumWidth = frustumHeight * aspect;
+
+            const xLimit = frustumWidth / 2 - padding;
+            const yLimit = frustumHeight / 2 - padding;
+
             spaceship.position.x = Math.max(
-              -xLimit + edgePadding,
-              Math.min(xLimit - edgePadding, spaceship.position.x)
+              -xLimit,
+              Math.min(xLimit, spaceship.position.x)
             );
             spaceship.position.y = Math.max(
-              -yLimit + edgePadding,
-              Math.min(yLimit - edgePadding, spaceship.position.y)
+              -yLimit,
+              Math.min(yLimit, spaceship.position.y)
             );
 
             // Spawn asteroids
@@ -443,10 +453,13 @@
           });
           const asteroid = new THREE.Mesh(geometry, material);
 
-          const x =
-            (((Math.random() - 0.5) * window.innerWidth) / window.innerHeight) *
-            20;
-          const y = (Math.random() - 0.5) * 20;
+          const aspect = window.innerWidth / window.innerHeight;
+          const frustumHeight =
+            camera.position.z * Math.tan((camera.fov * Math.PI) / 360) * 2;
+          const frustumWidth = frustumHeight * aspect;
+
+          const x = (Math.random() - 0.5) * frustumWidth;
+          const y = (Math.random() - 0.5) * frustumHeight;
           asteroid.position.set(x, y, -200);
 
           asteroids.push(asteroid);
@@ -458,10 +471,12 @@
           const geometry = new THREE.SphereGeometry(0.1, 8, 8);
           const material = new THREE.MeshBasicMaterial({ color: 0xef4444 });
           const bullet = new THREE.Mesh(geometry, material);
+
+          // Spawn bullet slightly in front of the spaceship to avoid self-collision
           bullet.position.set(
             spaceship.position.x,
             spaceship.position.y,
-            spaceship.position.z
+            spaceship.position.z + 1
           );
           bullets.push(bullet);
           scene.add(bullet);
@@ -490,6 +505,7 @@
           renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
+        // Desktop Key and Mouse Events
         function onKeyDown(event) {
           keys[event.key] = true;
           if (event.key === " " && !isGameOver && !isFlyingIn && !isPaused) {
@@ -514,6 +530,42 @@
           if (!isGameOver && !isFlyingIn && !isPaused) {
             shootBullet();
           }
+        }
+
+        // Mobile Touch Events
+        function onTouchStart(event) {
+          event.preventDefault();
+          if (isGameOver || isFlyingIn || isPaused) return;
+          const touch = event.touches[0];
+          touchStartX = touch.clientX;
+          touchStartY = touch.clientY;
+          lastTouchX = touch.clientX;
+          lastTouchY = touch.clientY;
+          isDragging = true;
+
+          // Shoot on tap
+          if (event.touches.length === 1) {
+            shootBullet();
+          }
+        }
+
+        function onTouchMove(event) {
+          event.preventDefault();
+          if (isGameOver || isFlyingIn || isPaused || !isDragging) return;
+          const touch = event.touches[0];
+          const deltaX = (touch.clientX - lastTouchX) * touchMoveSensitivity;
+          const deltaY = -(touch.clientY - lastTouchY) * touchMoveSensitivity;
+
+          spaceship.position.x += deltaX;
+          spaceship.position.y += deltaY;
+
+          lastTouchX = touch.clientX;
+          lastTouchY = touch.clientY;
+        }
+
+        function onTouchEnd(event) {
+          event.preventDefault();
+          isDragging = false;
         }
 
         // --- Initialization ---
