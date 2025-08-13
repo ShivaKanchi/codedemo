@@ -34,10 +34,18 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        font-size: 1.25rem;
+        font-size: 1rem; /* Adjusted for smaller screens first */
         color: #ffffff;
         z-index: 10;
       }
+      /* Tailwind's default 'md:' breakpoint is typically 768px.
+         We can override for larger screens to use a larger font-size if desired */
+      @media (min-width: 768px) {
+        .ui-container {
+          font-size: 1.25rem; /* Larger font for medium and larger screens */
+        }
+      }
+
       .score-display,
       .high-score-display,
       .time-display,
@@ -58,8 +66,15 @@
       .ui-left,
       .ui-right {
         display: flex;
-        gap: 1rem;
+        gap: 0.75rem; /* Slightly smaller gap for mobile */
       }
+      @media (min-width: 768px) {
+        .ui-left,
+        .ui-right {
+          gap: 1rem; /* Restore larger gap for desktop */
+        }
+      }
+
       .overlay {
         position: absolute;
         top: 0;
@@ -77,9 +92,9 @@
       .start-button,
       .restart-button,
       .resume-button {
-        padding: 1rem 2.5rem;
-        margin-top: 1.5rem;
-        font-size: 1.25rem;
+        padding: 0.8rem 2rem; /* Slightly smaller padding for smaller buttons */
+        margin-top: 1.2rem;
+        font-size: 1.1rem; /* Smaller font for buttons on mobile */
         font-weight: bold;
         color: #1a202c;
         background: linear-gradient(135deg, #38bdf8, #2dd4bf);
@@ -89,6 +104,16 @@
         transition: transform 0.2s, box-shadow 0.2s;
         box-shadow: 0 4px 15px rgba(45, 212, 191, 0.4);
       }
+      @media (min-width: 768px) {
+        .start-button,
+        .restart-button,
+        .resume-button {
+          padding: 1rem 2.5rem; /* Restore larger padding for desktop */
+          margin-top: 1.5rem;
+          font-size: 1.25rem; /* Restore larger font for desktop */
+        }
+      }
+
       .start-button:hover,
       .restart-button:hover,
       .resume-button:hover {
@@ -100,6 +125,31 @@
       .resume-button:active {
         transform: translateY(0);
         box-shadow: 0 2px 5px rgba(45, 212, 191, 0.2);
+      }
+      /* Adjust text sizes for responsiveness */
+      .text-4xl {
+        font-size: 2.25rem; /* Default for very small screens */
+      }
+      .text-lg {
+        font-size: 1.125rem;
+      }
+      .text-xl {
+        font-size: 1.25rem;
+      }
+
+      @media (min-width: 768px) {
+        .text-4xl {
+          font-size: 2.5rem;
+        }
+        .md\:text-6xl {
+          font-size: 3.75rem; /* Standard Tailwind 6xl */
+        }
+        .md\:text-xl {
+          font-size: 1.25rem;
+        }
+        .md\:text-2xl {
+          font-size: 1.5rem;
+        }
       }
     </style>
   </head>
@@ -172,7 +222,8 @@
         let lastTouchX = 0;
         let lastTouchY = 0;
         let isDragging = false;
-        const touchMoveSensitivity = 0.05;
+        const touchMoveSensitivity = 0.05; // Base sensitivity
+        let touchSensitivityMultiplier = 1; // Will scale with screen size
 
         const stars = [];
         const starCount = 1000;
@@ -201,7 +252,6 @@
 
           // Add stars to the scene for a sense of depth
           const starGeometry = new THREE.SphereGeometry(0.1, 8, 8);
-          // Define a few star colors
           const starColors = [
             0xffffff, // White
             0xadd8e6, // Light Blue
@@ -213,12 +263,11 @@
           for (let i = 0; i < starCount; i++) {
             let starMaterial;
             if (Math.random() < coloredStarChance) {
-              // Pick a random color from the defined list
               const color =
                 starColors[Math.floor(Math.random() * starColors.length)];
               starMaterial = new THREE.MeshBasicMaterial({ color: color });
             } else {
-              starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Default white
+              starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
             }
 
             const star = new THREE.Mesh(starGeometry, starMaterial);
@@ -258,6 +307,9 @@
           createSpaceship();
           loadHighScore();
 
+          // Initialize touch sensitivity multiplier based on initial screen size
+          updateTouchSensitivity();
+
           // --- Event Handlers ---
           window.addEventListener("resize", onWindowResize, false);
           document.addEventListener("keydown", onKeyDown, false);
@@ -273,13 +325,13 @@
           canvas.addEventListener("touchmove", onTouchMove, false);
           canvas.addEventListener("touchend", onTouchEnd, false);
 
-          window.addEventListener("blur", pauseGame); // Pause game if window loses focus
-          window.addEventListener("focus", unpauseGame); // Unpause if window gains focus
+          window.addEventListener("blur", pauseGame);
+          window.addEventListener("focus", unpauseGame);
         }
 
         // --- Game Logic ---
-        // Variable to hold the actual GLTF model of the spaceship for collision purposes
         let loadedSpaceshipModel = null;
+        let spaceshipBoundingSphere = null; // Re-declare here to make sure it's consistent
 
         function createSpaceship() {
           const loader = new THREE.GLTFLoader();
@@ -288,9 +340,17 @@
             function (gltf) {
               spaceship = gltf.scene;
               spaceship.scale.set(0.5, 0.5, 0.5);
-              spaceship.rotation.x = Math.PI / 2; // Initial rotation to face forward
+              spaceship.rotation.x = Math.PI / 2;
               scene.add(spaceship);
-              loadedSpaceshipModel = spaceship; // Store reference to the loaded model for collision
+              loadedSpaceshipModel = spaceship;
+
+              // Compute bounding sphere after model is loaded
+              const tempBox = new THREE.Box3().setFromObject(
+                loadedSpaceshipModel
+              );
+              spaceshipBoundingSphere = new THREE.Sphere();
+              tempBox.getBoundingSphere(spaceshipBoundingSphere);
+              spaceshipBoundingSphere.radius *= 0.6; // Adjust this factor for tighter collision
             },
             undefined,
             function (error) {
@@ -323,31 +383,21 @@
           startTime = Date.now();
           gameSpeed = 1;
 
-          // Spaceship starts further back for fly-in effect
-          // Ensure spaceship object exists before trying to set its position/rotation
           if (spaceship) {
             spaceship.position.set(0, 0, -150);
-            spaceship.rotation.z = 0; // Reset dynamic Z rotation
-            // The base X rotation (Math.PI / 2) is applied once in createSpaceship and should persist.
-            // If the model isn't loaded yet, this part will be skipped until it is.
-          } else {
-            // If spaceship isn't loaded yet, try to create it again (e.g., if starting before model loads)
-            // This might lead to unexpected behavior if createSpaceship is asynchronous.
-            // It's better to ensure `spaceship` is loaded before allowing game start.
-            // For this example, we assume it loads quickly or handle this state implicitly.
+            spaceship.rotation.z = 0;
+            // spaceship.rotation.x maintains its base Math.PI / 2 set in createSpaceship
           }
 
-          // Clear all existing game elements
           asteroids.forEach((a) => scene.remove(a));
           bullets.forEach((b) => scene.remove(b));
           asteroids.length = 0;
           bullets.length = 0;
 
-          // Reset star positions for new game
           for (const star of stars) {
-            star.position.z = (Math.random() - 0.5) * 200; // Random Z
-            star.position.x = (Math.random() - 0.5) * 200; // Random X
-            star.position.y = (Math.random() - 0.5) * 200; // Random Y
+            star.position.z = (Math.random() - 0.5) * 200;
+            star.position.x = (Math.random() - 0.5) * 200;
+            star.position.y = (Math.random() - 0.5) * 200;
           }
 
           startOverlay.classList.add("hidden");
@@ -356,7 +406,7 @@
           document.querySelector(".ui-container").style.display = "flex";
           pauseButton.classList.remove("hidden");
 
-          animate(); // Start the game loop
+          animate();
         }
 
         function gameOver() {
@@ -367,26 +417,22 @@
           finalTimeElement.textContent = `Time Played: ${finalTime}s`;
           gameOverOverlay.classList.remove("hidden");
           pauseButton.classList.add("hidden");
-          cancelAnimationFrame(animationFrameId); // Stop the animation loop
+          cancelAnimationFrame(animationFrameId);
         }
 
         function pauseGame() {
-          if (isGameOver || isFlyingIn || isPaused) return; // Prevent pausing during fly-in or if already paused/game over
+          if (isGameOver || isFlyingIn || isPaused) return;
           isPaused = true;
           pauseOverlay.classList.remove("hidden");
-          cancelAnimationFrame(animationFrameId); // Stop the animation loop
+          cancelAnimationFrame(animationFrameId);
         }
 
         function unpauseGame() {
-          if (isGameOver || isFlyingIn || !isPaused) return; // Only unpause if game is paused
+          if (isGameOver || isFlyingIn || !isPaused) return;
           isPaused = false;
           pauseOverlay.classList.add("hidden");
-          animate(); // Resume the animation loop
+          animate();
         }
-
-        // Cache the bounding box for the spaceship to avoid recalculating every frame if possible
-        let spaceshipBoundingBox = null;
-        let spaceshipBoundingSphere = null; // Also try sphere for robust collision
 
         function getBoundaryLimits() {
           const paddingX = 8;
@@ -406,9 +452,7 @@
         function update() {
           if (isGameOver || isPaused) return;
 
-          // Spaceship flying in animation
           if (isFlyingIn) {
-            // Only move if spaceship model has been loaded
             if (spaceship) {
               spaceship.position.z += 1.0;
               if (spaceship.position.z >= 5) {
@@ -418,7 +462,6 @@
             }
           }
 
-          // Update stars for streaking effect
           for (const star of stars) {
             star.position.z += 0.5 * gameSpeed;
             if (star.position.z > camera.position.z + 5) {
@@ -429,7 +472,6 @@
           }
 
           if (!isFlyingIn && spaceship) {
-            // Ensure spaceship is loaded and not flying in
             const elapsed = Math.floor((Date.now() - startTime) / 1000);
             timeElement.textContent = `Time: ${elapsed}s`;
             scoreElement.textContent = `Score: ${score}`;
@@ -483,7 +525,6 @@
               asteroidSpawnTimer = 0;
             }
 
-            // Update asteroids
             for (let i = asteroids.length - 1; i >= 0; i--) {
               const asteroid = asteroids[i];
               asteroid.position.z += 0.3 * gameSpeed;
@@ -491,43 +532,23 @@
               asteroid.rotation.y += asteroid.rotationSpeed.y * gameSpeed;
               asteroid.rotation.z += asteroid.rotationSpeed.z * gameSpeed;
 
-              // Collision check:
-              // For GLTF spaceship, we calculate its bounding box dynamically,
-              // or use a pre-calculated sphere/box that represents its collision volume.
-              // AABB for spaceship can be inaccurate if the model's geometry is not tight.
-              // Let's use Sphere-Sphere intersection if possible, or adjust box size.
-
-              // Strategy: Get a tight bounding sphere for spaceship once, then update its world position
-              // Or, use a *scaled* bounding box for the spaceship that's tighter.
-              // For simplicity and commonality, let's use Sphere for collision:
-              if (!spaceshipBoundingSphere && loadedSpaceshipModel) {
-                // Compute bounding sphere only once the model is loaded
-                const tempBox = new THREE.Box3().setFromObject(
-                  loadedSpaceshipModel
-                );
-                spaceshipBoundingSphere = new THREE.Sphere();
-                tempBox.getBoundingSphere(spaceshipBoundingSphere);
-                // Optionally, shrink the sphere if it's too large for the visual model
-                spaceshipBoundingSphere.radius *= 0.6; // Adjust this factor for tighter collision
-              }
-
-              // Also get bounding sphere for asteroid
-              // Asteroids already have a well-defined geometry
+              // Ensure asteroid bounding sphere is computed
               const asteroidBoundingSphere = new THREE.Sphere();
-              asteroid.geometry.computeBoundingSphere(); // Ensure sphere is computed
+              // computeBoundingSphere is called here for asteroid's *geometry* once.
+              // We need to apply the asteroid's *world* matrix for its current position/rotation/scale.
+              if (!asteroid.geometry.boundingSphere)
+                asteroid.geometry.computeBoundingSphere(); // Only if not already computed
               asteroidBoundingSphere
                 .copy(asteroid.geometry.boundingSphere)
                 .applyMatrix4(asteroid.matrixWorld);
-              // Optionally shrink asteroid sphere too if its geometry doesn't match visual well
-              asteroidBoundingSphere.radius *= 0.8; // Adjust if still too generous
+              asteroidBoundingSphere.radius *= 0.8;
 
-              // If both spaceship and asteroid spheres are available, check collision
+              // Perform collision check only if the spaceship model is loaded
               if (
+                loadedSpaceshipModel &&
                 spaceshipBoundingSphere &&
                 asteroidBoundingSphere.intersectsSphere(spaceshipBoundingSphere)
               ) {
-                // Even with sphere collision, slight visual overlap might occur.
-                // If you need pixel-perfect, you'd need more complex geometry intersection.
                 gameOver();
                 return;
               }
@@ -538,13 +559,13 @@
               }
             }
 
-            // Update bullets
             for (let i = bullets.length - 1; i >= 0; i--) {
               const bullet = bullets[i];
               bullet.position.z -= 0.5 * gameSpeed;
 
               const bulletBoundingSphere = new THREE.Sphere();
-              bullet.geometry.computeBoundingSphere();
+              if (!bullet.geometry.boundingSphere)
+                bullet.geometry.computeBoundingSphere(); // Only if not already computed
               bulletBoundingSphere
                 .copy(bullet.geometry.boundingSphere)
                 .applyMatrix4(bullet.matrixWorld);
@@ -552,11 +573,12 @@
               for (let j = asteroids.length - 1; j >= 0; j--) {
                 const asteroid = asteroids[j];
                 const asteroidBoundingSphere = new THREE.Sphere();
-                asteroid.geometry.computeBoundingSphere();
+                if (!asteroid.geometry.boundingSphere)
+                  asteroid.geometry.computeBoundingSphere(); // Only if not already computed
                 asteroidBoundingSphere
                   .copy(asteroid.geometry.boundingSphere)
                   .applyMatrix4(asteroid.matrixWorld);
-                asteroidBoundingSphere.radius *= 0.8; // Match asteroid shrinkage for bullet collision
+                asteroidBoundingSphere.radius *= 0.8;
 
                 if (
                   bulletBoundingSphere.intersectsSphere(asteroidBoundingSphere)
@@ -630,13 +652,9 @@
           scene.add(bullet);
         }
 
-        // --- Modified checkCollision to use Sphere intersection ---
-        // This function is now mostly for illustrative purposes, as the direct
-        // sphere intersections are happening in the update loop for better performance.
         function checkCollision(obj1, obj2) {
-          // This function might still be called for debug or if we switch back.
-          // For now, the direct sphere intersection logic in update() is the primary.
-          // AABB still used as fallback or for visual debugging
+          // This function is still mostly illustrative, as direct sphere intersection
+          // is handled in the update loop for the primary collision checks.
           const box1 = new THREE.Box3().setFromObject(obj1);
           const box2 = new THREE.Box3().setFromObject(obj2);
           return box1.intersectsBox(box2);
@@ -656,6 +674,20 @@
           camera.aspect = window.innerWidth / window.innerHeight;
           camera.updateProjectionMatrix();
           renderer.setSize(window.innerWidth, window.innerHeight);
+          updateTouchSensitivity(); // Recalculate touch sensitivity on resize
+        }
+
+        // Adjust touch sensitivity based on screen size/density
+        function updateTouchSensitivity() {
+          // Smaller screens often need higher touch sensitivity to cover more ground with less finger movement.
+          // This is a heuristic, adjust values as needed.
+          const baseWidth = 800; // Reference width (e.g., a tablet in landscape)
+          touchSensitivityMultiplier = Math.sqrt(window.innerWidth / baseWidth);
+          // Clamp to avoid extreme values
+          touchSensitivityMultiplier = Math.max(
+            0.5,
+            Math.min(2.0, touchSensitivityMultiplier)
+          );
         }
 
         // Desktop Key and Mouse Events
@@ -703,8 +735,15 @@
           event.preventDefault();
           if (isGameOver || isFlyingIn || isPaused || !isDragging) return;
           const touch = event.touches[0];
-          const deltaX = (touch.clientX - lastTouchX) * touchMoveSensitivity;
-          const deltaY = -(touch.clientY - lastTouchY) * touchMoveSensitivity; // Y-axis inverted for touch
+          // Apply multiplier to touch movement
+          const deltaX =
+            (touch.clientX - lastTouchX) *
+            touchMoveSensitivity *
+            touchSensitivityMultiplier;
+          const deltaY =
+            -(touch.clientY - lastTouchY) *
+            touchMoveSensitivity *
+            touchSensitivityMultiplier;
 
           spaceship.position.x += deltaX;
           spaceship.position.y += deltaY;
