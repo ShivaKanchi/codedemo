@@ -66,7 +66,7 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.3);
+        background: rgba(0, 0, 0, 0.8);
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -176,6 +176,7 @@
 
         const stars = [];
         const starCount = 1000;
+        const coloredStarChance = 0.02; // 2% chance for a star to be colored
 
         // UI elements
         const scoreElement = document.getElementById("score");
@@ -200,8 +201,26 @@
 
           // Add stars to the scene for a sense of depth
           const starGeometry = new THREE.SphereGeometry(0.1, 8, 8);
-          const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+          // Define a few star colors
+          const starColors = [
+            0xffffff, // White
+            0xadd8e6, // Light Blue
+            0xffa07a, // Light Salmon (orange-ish)
+            0xffff99, // Light Yellow
+            0xdda0dd, // Plum (purple-ish)
+          ];
+
           for (let i = 0; i < starCount; i++) {
+            let starMaterial;
+            if (Math.random() < coloredStarChance) {
+              // Pick a random color from the defined list
+              const color =
+                starColors[Math.floor(Math.random() * starColors.length)];
+              starMaterial = new THREE.MeshBasicMaterial({ color: color });
+            } else {
+              starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Default white
+            }
+
             const star = new THREE.Mesh(starGeometry, starMaterial);
             star.position.set(
               (Math.random() - 0.5) * 200,
@@ -259,6 +278,9 @@
         }
 
         // --- Game Logic ---
+        // Variable to hold the actual GLTF model of the spaceship for collision purposes
+        let loadedSpaceshipModel = null;
+
         function createSpaceship() {
           const loader = new THREE.GLTFLoader();
           loader.load(
@@ -266,12 +288,9 @@
             function (gltf) {
               spaceship = gltf.scene;
               spaceship.scale.set(0.5, 0.5, 0.5);
-              // Set an initial X rotation if the model's default forward isn't +Z
-              // This is a common adjustment for models where +Y is forward.
-              // If your spaceship looks like its nose is pointing upwards (along +Y) when its rotations are 0,
-              // then Math.PI / 2 will make it point along +Z (towards the asteroids).
-              spaceship.rotation.x = Math.PI / 2;
+              spaceship.rotation.x = Math.PI / 2; // Initial rotation to face forward
               scene.add(spaceship);
+              loadedSpaceshipModel = spaceship; // Store reference to the loaded model for collision
             },
             undefined,
             function (error) {
@@ -305,17 +324,18 @@
           gameSpeed = 1;
 
           // Spaceship starts further back for fly-in effect
-          spaceship.position.set(0, 0, -150);
-          // Only reset roll (Z) and pitch (X) to 0, if an initial X rotation exists it should remain.
-          // This line now specifically sets the dynamic rotation parts to 0, not the base orientation.
-          // The base orientation of PI/2 on X is set once in createSpaceship.
-          spaceship.rotation.z = 0;
-          // Note: The previous `spaceship.rotation.set(0, 0, 0);` here would override the initialXRotation.
-          // We need to preserve the base X rotation applied in createSpaceship.
-          // A more robust way to handle initial model orientation vs. dynamic tilt:
-          // Keep the model's base rotation separate from dynamic tilts.
-          // For now, let's just make sure `spaceship.rotation.x = Math.PI / 2;` is called *only* once on load.
-          // And that `startGame` doesn't reset it. This structure handles it correctly IF spaceship is already loaded.
+          // Ensure spaceship object exists before trying to set its position/rotation
+          if (spaceship) {
+            spaceship.position.set(0, 0, -150);
+            spaceship.rotation.z = 0; // Reset dynamic Z rotation
+            // The base X rotation (Math.PI / 2) is applied once in createSpaceship and should persist.
+            // If the model isn't loaded yet, this part will be skipped until it is.
+          } else {
+            // If spaceship isn't loaded yet, try to create it again (e.g., if starting before model loads)
+            // This might lead to unexpected behavior if createSpaceship is asynchronous.
+            // It's better to ensure `spaceship` is loaded before allowing game start.
+            // For this example, we assume it loads quickly or handle this state implicitly.
+          }
 
           // Clear all existing game elements
           asteroids.forEach((a) => scene.remove(a));
@@ -364,10 +384,13 @@
           animate(); // Resume the animation loop
         }
 
-        // Calculate boundary limits for spaceship based on camera frustum
+        // Cache the bounding box for the spaceship to avoid recalculating every frame if possible
+        let spaceshipBoundingBox = null;
+        let spaceshipBoundingSphere = null; // Also try sphere for robust collision
+
         function getBoundaryLimits() {
-          const paddingX = 8; // Increased X padding
-          const paddingY = 6; // Increased Y padding (can be different for aspect ratio considerations)
+          const paddingX = 8;
+          const paddingY = 6;
 
           const aspect = window.innerWidth / window.innerHeight;
           const frustumHeight =
@@ -385,36 +408,35 @@
 
           // Spaceship flying in animation
           if (isFlyingIn) {
-            spaceship.position.z += 1.0; // Speed of fly-in
-            if (spaceship.position.z >= 5) {
-              isFlyingIn = false;
-              spaceship.position.z = 5; // Lock Z position once it's "in"
+            // Only move if spaceship model has been loaded
+            if (spaceship) {
+              spaceship.position.z += 1.0;
+              if (spaceship.position.z >= 5) {
+                isFlyingIn = false;
+                spaceship.position.z = 5;
+              }
             }
           }
 
           // Update stars for streaking effect
           for (const star of stars) {
-            star.position.z += 0.5 * gameSpeed; // Stars move towards camera
+            star.position.z += 0.5 * gameSpeed;
             if (star.position.z > camera.position.z + 5) {
-              // Reset star to far back if it passes the camera
               star.position.z = -200;
               star.position.x = (Math.random() - 0.5) * 200;
               star.position.y = (Math.random() - 0.5) * 200;
             }
           }
 
-          // Normal game logic starts here
-          if (!isFlyingIn) {
-            // Update score and time
+          if (!isFlyingIn && spaceship) {
+            // Ensure spaceship is loaded and not flying in
             const elapsed = Math.floor((Date.now() - startTime) / 1000);
             timeElement.textContent = `Time: ${elapsed}s`;
             scoreElement.textContent = `Score: ${score}`;
 
-            // Increase game speed over time
-            gameSpeed = 1 + elapsed / 30; // Game gets faster every 30 seconds
+            gameSpeed = 1 + elapsed / 30;
 
-            // Spaceship movement
-            const speed = 0.15 * gameSpeed; // Slightly faster base movement
+            const speed = 0.15 * gameSpeed;
             let moveX = 0;
             let moveY = 0;
 
@@ -426,27 +448,21 @@
             spaceship.position.x += moveX * speed;
             spaceship.position.y += moveY * speed;
 
-            // Spaceship tilting effect
-            const tiltFactor = Math.PI / 12; // Increased tilt factor for more noticeable tilt
-            const lerpFactor = 0.2; // Increased lerp factor for smoother, quicker tilt response
+            const tiltFactor = Math.PI / 12;
+            const lerpFactor = 0.2;
 
-            // Roll (around Z-axis): leaning left/right based on horizontal movement
             spaceship.rotation.z = THREE.MathUtils.lerp(
               spaceship.rotation.z,
-              -moveX * tiltFactor, // Negative moveX makes it tilt "into" the turn (e.g., move right = tilt right)
+              -moveX * tiltFactor,
               lerpFactor
             );
-            // Pitch (around X-axis): nose up/down based on vertical movement
-            // We need to consider the initial X-rotation (Math.PI / 2) if the model's default forward is +Y
-            // and we rotated it to point +Z.
-            const basePitch = Math.PI / 2; // Assuming this is the initial X-rotation to make it face forward
+            const basePitch = Math.PI / 2;
             spaceship.rotation.x = THREE.MathUtils.lerp(
               spaceship.rotation.x,
-              basePitch + -moveY * tiltFactor, // Negative moveY for pitch down (common flight sim)
+              basePitch + -moveY * tiltFactor,
               lerpFactor
             );
 
-            // Boundary check for spaceship
             const { xLimit, yLimit } = getBoundaryLimits();
             spaceship.position.x = Math.max(
               -xLimit,
@@ -457,12 +473,11 @@
               Math.min(yLimit, spaceship.position.y)
             );
 
-            // Spawn asteroids
-            asteroidSpawnTimer += 1000 / 60; // Approximate time per frame (60 FPS)
+            asteroidSpawnTimer += 1000 / 60;
             const currentSpawnInterval = Math.max(
               100,
               asteroidSpawnInterval / gameSpeed
-            ); // Spawn faster as game speeds up, but not too fast
+            );
             if (asteroidSpawnTimer > currentSpawnInterval) {
               spawnAsteroid();
               asteroidSpawnTimer = 0;
@@ -471,19 +486,53 @@
             // Update asteroids
             for (let i = asteroids.length - 1; i >= 0; i--) {
               const asteroid = asteroids[i];
-              asteroid.position.z += 0.3 * gameSpeed; // Asteroids move towards camera
-              asteroid.rotation.x += asteroid.rotationSpeed.x * gameSpeed; // Apply rotation
+              asteroid.position.z += 0.3 * gameSpeed;
+              asteroid.rotation.x += asteroid.rotationSpeed.x * gameSpeed;
               asteroid.rotation.y += asteroid.rotationSpeed.y * gameSpeed;
               asteroid.rotation.z += asteroid.rotationSpeed.z * gameSpeed;
 
-              // Check collision with spaceship
-              if (checkCollision(spaceship, asteroid)) {
+              // Collision check:
+              // For GLTF spaceship, we calculate its bounding box dynamically,
+              // or use a pre-calculated sphere/box that represents its collision volume.
+              // AABB for spaceship can be inaccurate if the model's geometry is not tight.
+              // Let's use Sphere-Sphere intersection if possible, or adjust box size.
+
+              // Strategy: Get a tight bounding sphere for spaceship once, then update its world position
+              // Or, use a *scaled* bounding box for the spaceship that's tighter.
+              // For simplicity and commonality, let's use Sphere for collision:
+              if (!spaceshipBoundingSphere && loadedSpaceshipModel) {
+                // Compute bounding sphere only once the model is loaded
+                const tempBox = new THREE.Box3().setFromObject(
+                  loadedSpaceshipModel
+                );
+                spaceshipBoundingSphere = new THREE.Sphere();
+                tempBox.getBoundingSphere(spaceshipBoundingSphere);
+                // Optionally, shrink the sphere if it's too large for the visual model
+                spaceshipBoundingSphere.radius *= 0.6; // Adjust this factor for tighter collision
+              }
+
+              // Also get bounding sphere for asteroid
+              // Asteroids already have a well-defined geometry
+              const asteroidBoundingSphere = new THREE.Sphere();
+              asteroid.geometry.computeBoundingSphere(); // Ensure sphere is computed
+              asteroidBoundingSphere
+                .copy(asteroid.geometry.boundingSphere)
+                .applyMatrix4(asteroid.matrixWorld);
+              // Optionally shrink asteroid sphere too if its geometry doesn't match visual well
+              asteroidBoundingSphere.radius *= 0.8; // Adjust if still too generous
+
+              // If both spaceship and asteroid spheres are available, check collision
+              if (
+                spaceshipBoundingSphere &&
+                asteroidBoundingSphere.intersectsSphere(spaceshipBoundingSphere)
+              ) {
+                // Even with sphere collision, slight visual overlap might occur.
+                // If you need pixel-perfect, you'd need more complex geometry intersection.
                 gameOver();
-                return; // Stop update loop immediately
+                return;
               }
 
               if (asteroid.position.z > camera.position.z + 5) {
-                // Remove asteroid if it passes the camera
                 scene.remove(asteroid);
                 asteroids.splice(i, 1);
               }
@@ -492,23 +541,36 @@
             // Update bullets
             for (let i = bullets.length - 1; i >= 0; i--) {
               const bullet = bullets[i];
-              bullet.position.z -= 0.5 * gameSpeed; // Bullets move away from camera
+              bullet.position.z -= 0.5 * gameSpeed;
 
-              // Check collision with asteroids
+              const bulletBoundingSphere = new THREE.Sphere();
+              bullet.geometry.computeBoundingSphere();
+              bulletBoundingSphere
+                .copy(bullet.geometry.boundingSphere)
+                .applyMatrix4(bullet.matrixWorld);
+
               for (let j = asteroids.length - 1; j >= 0; j--) {
                 const asteroid = asteroids[j];
-                if (checkCollision(bullet, asteroid)) {
+                const asteroidBoundingSphere = new THREE.Sphere();
+                asteroid.geometry.computeBoundingSphere();
+                asteroidBoundingSphere
+                  .copy(asteroid.geometry.boundingSphere)
+                  .applyMatrix4(asteroid.matrixWorld);
+                asteroidBoundingSphere.radius *= 0.8; // Match asteroid shrinkage for bullet collision
+
+                if (
+                  bulletBoundingSphere.intersectsSphere(asteroidBoundingSphere)
+                ) {
                   scene.remove(bullet);
                   bullets.splice(i, 1);
                   scene.remove(asteroid);
                   asteroids.splice(j, 1);
                   score += 10;
-                  break; // Bullet hit an asteroid, no need to check other asteroids for this bullet
+                  break;
                 }
               }
 
               if (bullet.position.z < -200) {
-                // Remove bullet if it goes too far
                 scene.remove(bullet);
                 bullets.splice(i, 1);
               }
@@ -517,8 +579,8 @@
         }
 
         function spawnAsteroid() {
-          const asteroidGeometry = new THREE.DodecahedronGeometry(1.5, 0); // Radius 1.5, 0 subdivisions for angular look
-          const asteroidSize = 1; // All asteroids will have this relative size
+          const asteroidGeometry = new THREE.DodecahedronGeometry(1.5, 0);
+          const asteroidSize = 1;
           const geometry = asteroidGeometry.clone();
           geometry.scale(asteroidSize, asteroidSize, asteroidSize);
 
@@ -529,7 +591,7 @@
               }, ${Math.floor(Math.random() * 50) + 80})`
             ),
             shininess: 10,
-            flatShading: true, // Make faces flat for a more faceted look
+            flatShading: true,
           });
           const asteroid = new THREE.Mesh(geometry, material);
 
@@ -568,7 +630,13 @@
           scene.add(bullet);
         }
 
+        // --- Modified checkCollision to use Sphere intersection ---
+        // This function is now mostly for illustrative purposes, as the direct
+        // sphere intersections are happening in the update loop for better performance.
         function checkCollision(obj1, obj2) {
+          // This function might still be called for debug or if we switch back.
+          // For now, the direct sphere intersection logic in update() is the primary.
+          // AABB still used as fallback or for visual debugging
           const box1 = new THREE.Box3().setFromObject(obj1);
           const box2 = new THREE.Box3().setFromObject(obj2);
           return box1.intersectsBox(box2);
