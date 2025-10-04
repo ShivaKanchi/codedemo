@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Koi Pond</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      let koi = [];
+      let numKoi = 5;
+      let lotus = [];
+      let numLotus = 3;
+      let kelp = [];
+      let numKelp = 10;
+      let pondColor;
+
+      function setup() {
+        createCanvas(800, 600);
+        pondColor = color(20, 100, 150, 200); // Deep blue-green for water
+
+        // Initialize Koi
+        for (let i = 0; i < numKoi; i++) {
+          koi.push(new Koi(random(width), random(height), random(0.5, 1.5)));
+        }
+
+        // Initialize Lotus
+        for (let i = 0; i < numLotus; i++) {
+          lotus.push(new Lotus(random(width), random(height)));
+        }
+
+        // Initialize Kelp
+        for (let i = 0; i < numKelp; i++) {
+          kelp.push(
+            new Kelp(
+              random(width),
+              random(height * 0.8, height * 1.2),
+              random(0.5, 1.5)
+            )
+          );
+        }
+      }
+
+      function draw() {
+        background(pondColor);
+        drawPondSurfaceEffect();
+
+        // Update and display Kelp (draw before koi for depth)
+        for (let k of kelp) {
+          k.update();
+          k.display();
+        }
+
+        // Update and display Lotus
+        for (let l of lotus) {
+          l.display();
+        }
+
+        // Update and display Koi
+        for (let k of koi) {
+          k.update();
+          k.display();
+        }
+      }
+
+      function drawPondSurfaceEffect() {
+        // Simple ripple effect or light reflection
+        noFill();
+        stroke(255, 255, 255, 50);
+        for (let i = 0; i < height; i += 20) {
+          beginShape();
+          for (let j = 0; j < width; j += 10) {
+            let x = j + sin(frameCount * 0.05 + j * 0.02 + i * 0.01) * 5;
+            let y = i + cos(frameCount * 0.03 + j * 0.01 + i * 0.02) * 3;
+            curveVertex(x, y);
+          }
+          endShape();
+        }
+      }
+
+      class Koi {
+        constructor(x, y, scaleFactor) {
+          this.pos = createVector(x, y);
+          this.vel = p5.Vector.random2D().mult(random(0.5, 2));
+          this.acc = createVector();
+          this.maxSpeed = 2;
+          this.maxForce = 0.1;
+          this.color1 = color(255, random(150, 200), random(0, 50)); // White/Red/Orange
+          this.color2 = color(random(200, 255), random(0, 100), 0);
+          this.bodyLength = 40 * scaleFactor;
+          this.bodyWidth = 15 * scaleFactor;
+          this.tailLength = 20 * scaleFactor;
+          this.tailWidth = 10 * scaleFactor;
+          this.finLength = 10 * scaleFactor;
+          this.finWidth = 5 * scaleFactor;
+        }
+
+        update() {
+          this.vel.add(this.acc);
+          this.vel.limit(this.maxSpeed);
+          this.pos.add(this.vel);
+          this.acc.mult(0);
+
+          this.flock(); // Apply flocking behavior
+
+          this.checkEdges();
+        }
+
+        flock() {
+          let separation = this.separate(koi);
+          let alignment = this.align(koi);
+          let cohesion = this.cohere(koi);
+
+          // Apply forces
+          separation.mult(1.5); // Stronger separation
+          alignment.mult(1.0);
+          cohesion.mult(1.0);
+
+          this.applyForce(separation);
+          this.applyForce(alignment);
+          this.applyForce(cohesion);
+
+          // Add some random movement to break perfect flocking
+          if (random(1) < 0.05) {
+            // 5% chance per frame to apply a slight random force
+            let randomForce = p5.Vector.random2D().mult(random(0.01, 0.05));
+            this.applyForce(randomForce);
+          }
+        }
+
+        applyForce(force) {
+          this.acc.add(force);
+        }
+
+        seek(target) {
+          let desired = p5.Vector.sub(target, this.pos);
+          desired.setMag(this.maxSpeed);
+          let steer = p5.Vector.sub(desired, this.vel);
+          steer.limit(this.maxForce);
+          return steer;
+        }
+
+        separate(boids) {
+          let desiredSeparation = 50; // Radius for separation
+          let steer = createVector(0, 0);
+          let count = 0;
+          for (let other of boids) {
+            let d = p5.Vector.dist(this.pos, other.pos);
+            if (d > 0 && d < desiredSeparation) {
+              let diff = p5.Vector.sub(this.pos, other.pos);
+              diff.normalize();
+              diff.div(d); // Weight by distance
+              steer.add(diff);
+              count++;
+            }
+          }
+          if (count > 0) {
+            steer.div(count);
+          }
+          if (steer.mag() > 0) {
+            steer.setMag(this.maxSpeed);
+            steer.sub(this.vel);
+            steer.limit(this.maxForce);
+          }
+          return steer;
+        }
+
+        align(boids) {
+          let neighborDist = 75; // Radius for alignment
+          let sum = createVector(0, 0);
+          let count = 0;
+          for (let other of boids) {
+            let d = p5.Vector.dist(this.pos, other.pos);
+            if (d > 0 && d < neighborDist) {
+              sum.add(other.vel);
+              count++;
+            }
+          }
+          if (count > 0) {
+            sum.div(count);
+            sum.setMag(this.maxSpeed);
+            let steer = p5.Vector.sub(sum, this.vel);
+            steer.limit(this.maxForce);
+            return steer;
+          } else {
+            return createVector(0, 0);
+          }
+        }
+
+        cohere(boids) {
+          let neighborDist = 100; // Radius for cohesion
+          let sum = createVector(0, 0); // Start with an empty vector to accumulate all locations
+          let count = 0;
+          for (let other of boids) {
+            let d = p5.Vector.dist(this.pos, other.pos);
+            if (d > 0 && d < neighborDist) {
+              sum.add(other.pos); // Add location
+              count++;
+            }
+          }
+          if (count > 0) {
+            sum.div(count);
+            return this.seek(sum); // Steer towards the average location
+          } else {
+            return createVector(0, 0);
+          }
+        }
+
+        checkEdges() {
+          let margin = 50;
+          let turnFactor = 0.5;
+
+          if (this.pos.x < margin) {
+            this.vel.x += turnFactor;
+          } else if (this.pos.x > width - margin) {
+            this.vel.x -= turnFactor;
+          }
+
+          if (this.pos.y < margin) {
+            this.vel.y += turnFactor;
+          } else if (this.pos.y > height - margin) {
+            this.vel.y -= turnFactor;
+          }
+        }
+
+        display() {
+          push();
+          translate(this.pos.x, this.pos.y);
+          let angle = this.vel.heading();
+          rotate(angle);
+
+          // Body
+          fill(this.color1);
+          noStroke();
+          ellipse(0, 0, this.bodyLength, this.bodyWidth);
+
+          // Spots/Markings
+          fill(this.color2);
+          ellipse(
+            this.bodyLength * 0.15,
+            0,
+            this.bodyWidth * 0.7,
+            this.bodyWidth * 0.7
+          );
+          ellipse(
+            -this.bodyLength * 0.1,
+            this.bodyWidth * 0.3,
+            this.bodyWidth * 0.6,
+            this.bodyWidth * 0.6
+          );
+          ellipse(
+            -this.bodyLength * 0.2,
+            -this.bodyWidth * 0.3,
+            this.bodyWidth * 0.5,
+            this.bodyWidth * 0.5
+          );
+
+          // Tail
+          beginShape();
+          vertex(-this.bodyLength / 2, 0);
+          bezierVertex(
+            -this.bodyLength / 2 - this.tailLength * 0.3,
+            this.tailWidth / 2,
+            -this.bodyLength / 2 - this.tailLength * 0.7,
+            this.tailWidth / 2,
+            -this.bodyLength / 2 - this.tailLength,
+            0
+          );
+          bezierVertex(
+            -this.bodyLength / 2 - this.tailLength * 0.7,
+            -this.tailWidth / 2,
+            -this.bodyLength / 2 - this.tailLength * 0.3,
+            -this.tailWidth / 2,
+            -this.bodyLength / 2,
+            0
+          );
+          endShape(CLOSE);
+
+          // Fins
+          fill(this.color1);
+          // Left fin
+          beginShape();
+          vertex(this.bodyLength * 0.1, -this.bodyWidth * 0.4);
+          bezierVertex(
+            this.bodyLength * 0.2,
+            -this.bodyWidth * 0.6,
+            this.bodyLength * 0.3,
+            -this.bodyWidth * 0.5,
+            this.bodyLength * 0.2,
+            -this.bodyWidth * 0.2
+          );
+          endShape(CLOSE);
+
+          // Right fin
+          beginShape();
+          vertex(this.bodyLength * 0.1, this.bodyWidth * 0.4);
+          bezierVertex(
+            this.bodyLength * 0.2,
+            this.bodyWidth * 0.6,
+            this.bodyLength * 0.3,
+            this.bodyWidth * 0.5,
+            this.bodyLength * 0.2,
+            this.bodyWidth * 0.2
+          );
+          endShape(CLOSE);
+
+          // Head detail (mouth/eyes)
+          fill(255);
+          ellipse(this.bodyLength / 2 - 5, 0, 5, 3); // Mouth
+          fill(0);
+          ellipse(this.bodyLength / 2 - 10, -this.bodyWidth * 0.2, 2, 2); // Eye left
+          ellipse(this.bodyLength / 2 - 10, this.bodyWidth * 0.2, 2, 2); // Eye right
+
+          pop();
+        }
+      }
+
+      class Lotus {
+        constructor(x, y) {
+          this.pos = createVector(x, y);
+          this.leafSize = random(60, 100);
+          this.petalSize = this.leafSize * 0.4;
+          this.petalColor = color(255, 200, 220, 200); // Pinkish white
+          this.leafColor = color(50, 150, 70, 200); // Green
+          this.centerColor = color(255, 200, 0); // Yellow
+        }
+
+        display() {
+          push();
+          translate(this.pos.x, this.pos.y);
+
+          // Lily pad (leaf)
+          fill(this.leafColor);
+          noStroke();
+          ellipse(0, 0, this.leafSize, this.leafSize * 0.9);
+          // A small cut for realism
+          arc(
+            this.leafSize * 0.3,
+            0,
+            this.leafSize * 0.3,
+            this.leafSize * 0.3,
+            PI / 2,
+            (PI * 3) / 2,
+            CHORD
+          );
+
+          // Flower petals
+          for (let i = 0; i < 10; i++) {
+            rotate(PI / 5 + sin(frameCount * 0.01 + i) * 0.05); // Gentle wobble
+            fill(this.petalColor);
+            ellipse(
+              this.petalSize * 0.5,
+              0,
+              this.petalSize,
+              this.petalSize * 0.5
+            );
+          }
+          for (let i = 0; i < 8; i++) {
+            rotate(PI / 4 + cos(frameCount * 0.01 + i) * 0.05); // Gentle wobble
+            fill(
+              this.petalColor.levels[0],
+              this.petalColor.levels[1],
+              this.petalColor.levels[2],
+              150
+            ); // Lighter shade for inner petals
+            ellipse(
+              this.petalSize * 0.3,
+              0,
+              this.petalSize * 0.7,
+              this.petalSize * 0.3
+            );
+          }
+
+          // Flower center
+          fill(this.centerColor);
+          ellipse(0, 0, this.petalSize * 0.3, this.petalSize * 0.3);
+
+          pop();
+        }
+      }
+
+      class Kelp {
+        constructor(x, y, scaleFactor) {
+          this.basePos = createVector(x, y);
+          this.segments = [];
+          this.numSegments = floor(random(5, 15));
+          this.segmentLength = random(10, 20) * scaleFactor;
+          this.segmentWidth = random(3, 8) * scaleFactor;
+          this.color = color(
+            random(30, 80),
+            random(100, 180),
+            random(40, 90),
+            180
+          ); // Greenish-brown for kelp
+          this.swaySpeed = random(0.01, 0.05);
+          this.swayMagnitude = random(0.5, 1.5);
+          this.initSegments();
+        }
+
+        initSegments() {
+          let currentPos = this.basePos.copy();
+          for (let i = 0; i < this.numSegments; i++) {
+            this.segments.push(currentPos.copy());
+            currentPos.y -= this.segmentLength; // Stack upwards
+          }
+        }
+
+        update() {
+          for (let i = 0; i < this.numSegments; i++) {
+            let swayX =
+              sin(frameCount * this.swaySpeed + i * 0.5) *
+              this.swayMagnitude *
+              (i + 1);
+            let swayY =
+              cos(frameCount * this.swaySpeed * 0.5 + i * 0.2) *
+              this.swayMagnitude *
+              0.5;
+
+            if (i === 0) {
+              // Base segment
+              this.segments[i].x = this.basePos.x + swayX;
+              this.segments[i].y = this.basePos.y + swayY;
+            } else {
+              // Each segment follows the one below it
+              let prevSegment = this.segments[i - 1];
+              let targetX = prevSegment.x + swayX;
+              let targetY = prevSegment.y - this.segmentLength + swayY;
+
+              // Simple spring-like connection
+              this.segments[i].x = lerp(this.segments[i].x, targetX, 0.1);
+              this.segments[i].y = lerp(this.segments[i].y, targetY, 0.1);
+            }
+
+            // Keep kelp within horizontal bounds
+            this.segments[i].x = constrain(this.segments[i].x, 0, width);
+          }
+        }
+
+        display() {
+          noFill();
+          stroke(this.color);
+          strokeWeight(this.segmentWidth);
+          strokeJoin(ROUND);
+          strokeCap(ROUND);
+
+          beginShape();
+          vertex(this.basePos.x, this.basePos.y); // Start from the true base
+          for (let i = 0; i < this.numSegments; i++) {
+            let currentSeg = this.segments[i];
+            curveVertex(currentSeg.x, currentSeg.y);
+          }
+          endShape();
+
+          // Draw a small bulb at the top for some kelp varieties
+          if (random(1) < 0.2) {
+            // 20% chance to have a bulb
+            let topSeg = this.segments[this.numSegments - 1];
+            fill(
+              this.color.levels[0] + 20,
+              this.color.levels[1] + 20,
+              this.color.levels[2] + 20,
+              this.color.levels[3]
+            );
+            noStroke();
+            ellipse(
+              topSeg.x,
+              topSeg.y,
+              this.segmentWidth * 1.5,
+              this.segmentWidth * 1.5
+            );
+          }
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <title>Kaleidoscope</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #000;
+        height: 100vh;
+        width: 100vw;
+      }
+      canvas {
+        display: block;
+      }
+      #controls-btn {
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: rgba(255, 255, 255, 0.3);
+        padding: 5px 8px;
+        font-size: 10px;
+        cursor: pointer;
+        border-radius: 3px;
+        z-index: 10;
+      }
+      #controls-panel {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 12px;
+        display: none;
+        flex-direction: row;
+        gap: 10px;
+        align-items: center;
+        z-index: 10;
+      }
+      #controls-panel button,
+      #controls-panel input {
+        font-size: 12px;
+        padding: 5px 10px;
+      }
+      #controls-panel p {
+        margin: 0;
+        color: white;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      let symmetry = 6;
+      let angle;
+      let hu = 0;
+
+      function setup() {
+        createCanvas(windowWidth, windowHeight);
+        angleMode(DEGREES);
+        background(0);
+        colorMode(HSB, 360, 100, 100);
+        angle = 360 / symmetry;
+      }
+
+      function windowResized() {
+        resizeCanvas(windowWidth, windowHeight);
+      }
+
+      function draw() {
+        angle = 360 / symmetry;
+
+        translate(width / 2, height / 2); // Center the drawing
+
+        // Draw only when mouse is pressed and not over controls
+        if (mouseIsPressed && !isMouseOverControls()) {
+          let mx = mouseX - width / 2;
+          let my = mouseY - height / 2;
+          let pmx = pmouseX - width / 2;
+          let pmy = pmouseY - height / 2;
+
+          // Set stroke color based on HSB
+          hu = (hu + 1) % 360;
+          stroke(hu, 90, 90, 0.7); // Hue, Saturation, Brightness, Alpha
+          strokeWeight(2);
+
+          for (let i = 0; i < symmetry; i++) {
+            rotate(angle);
+            let sw = 10; // Base stroke weight
+            // Vary stroke weight based on distance from center for a cool effect
+            sw = map(dist(0, 0, mx, my), 0, width / 2, 1, 20);
+            strokeWeight(sw);
+
+            line(mx, my, pmx, pmy); // Draw line
+            push();
+            scale(1, -1); // Mirror across the x-axis
+            line(mx, my, pmx, pmy);
+            pop();
+          }
+        }
+      }
+
+      function toggleControls() {
+        const panel = document.getElementById("controls-panel");
+        panel.style.display = panel.style.display === "flex" ? "none" : "flex";
+      }
+
+      function saveImg() {
+        save("kaleidoscope.png");
+      }
+
+      function clearCanvas() {
+        background(0);
+      }
+
+      function updateSymmetry() {
+        symmetry = parseInt(document.getElementById("symmetry-slider").value);
+        angle = 360 / symmetry;
+      }
+
+      function isMouseOverControls() {
+        const panel = document.getElementById("controls-panel");
+        const btn = document.getElementById("controls-btn");
+        const btnRect = btn.getBoundingClientRect();
+        const panelRect = panel.getBoundingClientRect();
+
+        return (
+          (mouseX >= btnRect.left &&
+            mouseX <= btnRect.right &&
+            mouseY >= btnRect.top &&
+            mouseY <= btnRect.bottom) ||
+          (panel.style.display === "flex" &&
+            mouseY >= panelRect.top &&
+            mouseY <= panelRect.bottom)
+        );
+      }
+    </script>
+
+    <button id="controls-btn" onclick="toggleControls()">⚙</button>
+
+    <div id="controls-panel">
+      <button onclick="saveImg()">Save</button>
+      <button onclick="clearCanvas()">Clear</button>
+      <p>Symmetry:</p>
+      <input
+        type="range"
+        id="symmetry-slider"
+        min="2"
+        max="32"
+        value="6"
+        oninput="updateSymmetry()"
+      />
+    </div>
+  </body>
+</html>
