@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Time is Money: Screen Filler</title>
+    <!-- Load Tailwind CSS for utility classes and Inter font -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Inter font for a professional, modern look */
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap");
+
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: white;
+        color: black;
+        /* Scrollable height to ensure all 300 digits can be zeroed out. */
+        min-height: 1500vh;
+      }
+
+      .main-content {
+        /* Fixes the content to the viewport center */
+        position: fixed;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 670px; /* Constrained width for article look */
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 1rem;
+        padding-top: 3rem;
+      }
+
+      /* Unified Base Styling for the full fixed initial message */
+      #full-money-display {
+        font-size: 2.25rem; /* Base size */
+        font-weight: 400;
+        line-height: 1.2;
+        opacity: 1;
+        transition: opacity 3s ease-in-out; /* Slower fade out */
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        width: 95%;
+        max-width: 100%;
+        margin: 0; /* Remove default margins */
+        padding: 0;
+      }
+
+      /* Highlight the number part by making it bold */
+      .money-number-part {
+        font-weight: 800;
+      }
+
+      /* Responsive font scaling */
+      @media (min-width: 640px) {
+        #full-money-display {
+          font-size: 3rem;
+        }
+      }
+      @media (min-width: 1024px) {
+        #full-money-display {
+          font-size: 4rem;
+        }
+      }
+
+      #final-message-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90%;
+        opacity: 0;
+        transition: opacity 1s 2s ease-in-out; /* Slower main fade in */
+      }
+
+      #final-message-container p {
+        font-size: 2rem;
+        font-weight: 800;
+        line-height: 1.2;
+        text-transform: uppercase;
+      }
+      /* Style and transition for the second line */
+      #final-line-2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 1.4rem;
+        opacity: 0; /* Hidden initially */
+        transition: opacity 1s 3.5s ease-in-out;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="main-content">
+      <!-- Initial message container (fixed content) -->
+      <div
+        id="initial-state"
+        class="w-full h-full flex flex-col items-center justify-start"
+      >
+        <div id="full-money-display">
+          <!-- Content injected here by JS -->
+        </div>
+      </div>
+
+      <!-- Final hidden message container -->
+      <div id="final-message-container">
+        <p id="final-line-1">The more you scroll, the more you waste time.</p>
+        <p id="final-line-2">Time is money.</p>
+      </div>
+    </div>
+
+    <script>
+      // The incredibly long string of '9's (300 digits)
+      const FULL_NUMBER_STRING =
+        "999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999";
+      const INTRO_TEXT_PREFIX = "A person can make this much Money: ";
+
+      // Global Constants
+      const MAX_REPLACEMENTS = FULL_NUMBER_STRING.length;
+      const SCROLL_STEP_PX = 20;
+
+      // DOM Elements
+      const fullMoneyDisplayEl = document.getElementById("full-money-display");
+      const initialStateEl = document.getElementById("initial-state");
+      const finalMessageContainerEl = document.getElementById(
+        "final-message-container"
+      );
+      const finalLine2El = document.getElementById("final-line-2");
+
+      // State variables (PERSISTENT)
+      let digitsZeroedCount = 0;
+      let isFinalMessageShown = false;
+
+      // Function to update the money display
+      function updateMoneyDisplay(replacements) {
+        // Determine the prefix (unchanged 9s) and suffix (zeroed 0s)
+        const numberPartLength = FULL_NUMBER_STRING.length;
+        const prefixDigits = FULL_NUMBER_STRING.substring(
+          0,
+          numberPartLength - replacements
+        );
+        const suffixZeros = "0".repeat(replacements);
+
+        let numberString = prefixDigits + suffixZeros;
+
+        // Handle the final state when all digits are zeroed out
+        if (replacements >= MAX_REPLACEMENTS) {
+          numberString = "0";
+        }
+
+        // Construct the full HTML content with the bold number part
+        fullMoneyDisplayEl.innerHTML = `<span>${INTRO_TEXT_PREFIX}<span class="money-number-part">₹${numberString}</span></span>`;
+
+        if (replacements >= MAX_REPLACEMENTS && !isFinalMessageShown) {
+          // 1. Start the slow fade out of the initial message (3 seconds)
+          fullMoneyDisplayEl.style.opacity = "0";
+
+          // 2. After slow fade out, reveal final message line 1
+          setTimeout(() => {
+            initialStateEl.style.display = "none"; // Hide the full block
+            finalMessageContainerEl.style.opacity = "1";
+
+            // 3. Add a delay (1.5 seconds) for the second line
+            setTimeout(() => {
+              finalLine2El.style.opacity = "1";
+            }, 1500);
+
+            isFinalMessageShown = true;
+          }, 3000); // Wait 3 seconds for the initial text to completely fade
+        }
+      }
+
+      // Scroll Event Handler - Throttled for performance
+      let isScrolling = false;
+      function handleScroll() {
+        if (isScrolling) return;
+
+        isScrolling = true;
+        window.requestAnimationFrame(() => {
+          const scrollY = window.scrollY;
+          const maxScroll =
+            document.documentElement.scrollHeight - window.innerHeight;
+
+          let potentialReplacements;
+
+          // CRITICAL FIX: Force completion if the user reaches the very bottom of the page
+          if (scrollY >= maxScroll && digitsZeroedCount < MAX_REPLACEMENTS) {
+            potentialReplacements = MAX_REPLACEMENTS;
+          } else {
+            // Normal calculation based on scroll position
+            potentialReplacements = Math.min(
+              MAX_REPLACEMENTS,
+              Math.floor(scrollY / SCROLL_STEP_PX)
+            );
+          }
+
+          // Check for persistence: only update if the new potential replacement count is higher
+          if (potentialReplacements > digitsZeroedCount) {
+            digitsZeroedCount = potentialReplacements;
+            updateMoneyDisplay(digitsZeroedCount);
+          }
+
+          isScrolling = false;
+        });
+      }
+
+      // Initial setup and listener attachment
+      window.addEventListener("scroll", handleScroll);
+
+      // Initial display
+      updateMoneyDisplay(0);
+    </script>
+  </body>
+</html>
