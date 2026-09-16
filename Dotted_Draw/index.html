@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Dotted Line Tracer</title>
+    <style>
+      :root {
+        --bg: #111214;
+        --panel: #1a1c1f;
+        --line: #2c2f33;
+        --text: #e8e6e1;
+        --muted: #8b8f96;
+        --accent: #e9c948;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: ui-monospace, "SF Mono", Consolas, monospace;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      header {
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+      }
+      header h1 {
+        font-size: 15px;
+        margin: 0;
+        letter-spacing: 0.02em;
+      }
+      header p {
+        font-size: 12px;
+        color: var(--muted);
+        margin: 0;
+      }
+
+      #app {
+        flex: 1;
+        display: flex;
+        min-height: 0;
+      }
+
+      #sidebar {
+        width: 230px;
+        border-right: 1px solid var(--line);
+        padding: 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        flex-shrink: 0;
+      }
+      .field label {
+        display: block;
+        font-size: 11px;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      .field .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .field output {
+        font-size: 11px;
+        color: var(--muted);
+        min-width: 26px;
+        text-align: right;
+      }
+      input[type="range"] {
+        flex: 1;
+        accent-color: var(--accent);
+      }
+      input[type="color"] {
+        width: 34px;
+        height: 26px;
+        border: 1px solid var(--line);
+        background: none;
+        padding: 0;
+        border-radius: 4px;
+      }
+      input[type="checkbox"] {
+        accent-color: var(--accent);
+      }
+
+      button,
+      .file-btn {
+        width: 100%;
+        padding: 8px 10px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        color: var(--text);
+        font-family: inherit;
+        font-size: 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        text-align: center;
+      }
+      button:hover,
+      .file-btn:hover {
+        border-color: var(--accent);
+      }
+      button.primary {
+        background: var(--accent);
+        color: #1a1a1a;
+        border-color: var(--accent);
+        font-weight: 600;
+      }
+      button.primary:hover {
+        opacity: 0.9;
+      }
+      button.danger:hover {
+        border-color: #e05a5a;
+      }
+      .btn-row {
+        display: flex;
+        gap: 8px;
+      }
+      .btn-row button {
+        flex: 1;
+      }
+
+      .mode-toggle {
+        display: flex;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        overflow: hidden;
+      }
+      .mode-toggle button {
+        border: none;
+        border-radius: 0;
+      }
+      .mode-toggle button.active {
+        background: var(--accent);
+        color: #1a1a1a;
+        font-weight: 600;
+      }
+
+      #hint {
+        font-size: 11px;
+        color: var(--muted);
+        line-height: 1.5;
+        border-top: 1px solid var(--line);
+        padding-top: 14px;
+      }
+
+      #canvas-wrap {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        overflow: auto;
+        background:
+          linear-gradient(45deg, #191a1c 25%, transparent 25%) 0 0/20px 20px,
+          linear-gradient(-45deg, #191a1c 25%, transparent 25%) 0 0/20px 20px,
+          linear-gradient(45deg, transparent 75%, #191a1c 75%) 0 0/20px 20px,
+          linear-gradient(-45deg, transparent 75%, #191a1c 75%) 0 0/20px 20px,
+          var(--bg);
+      }
+      #stage {
+        position: relative;
+        line-height: 0;
+        box-shadow: 0 0 0 1px var(--line);
+      }
+      #bgImage {
+        display: block;
+        width: 100%;
+        height: 100%;
+        user-select: none;
+        -webkit-user-drag: none;
+      }
+      #drawSvg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+        cursor: crosshair;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Dotted Line Tracer</h1>
+      <p>Upload an image, trace over it with dotted lines, export as SVG</p>
+    </header>
+
+    <div id="app">
+      <div id="sidebar">
+        <div class="field">
+          <label>Image</label>
+          <label class="file-btn"
+            >Upload image
+            <input
+              id="fileInput"
+              type="file"
+              accept="image/*"
+              style="display: none"
+            />
+          </label>
+        </div>
+
+        <div class="field">
+          <label>Draw mode</label>
+          <div class="mode-toggle">
+            <button id="modeFree" class="active">Freehand</button>
+            <button id="modePoint">Points</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Dot color</label>
+          <input id="colorInput" type="color" value="#e9c948" />
+        </div>
+
+        <div class="field">
+          <label>Dot size</label>
+          <div class="row">
+            <input
+              id="dotSize"
+              type="range"
+              min="1"
+              max="100"
+              step="0.5"
+              value="3.5"
+            />
+            <output id="dotSizeOut">3.5</output>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Dot spacing</label>
+          <div class="row">
+            <input
+              id="dotGap"
+              type="range"
+              min="2"
+              max="300"
+              step="1"
+              value="10"
+            />
+            <output id="dotGapOut">10</output>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Background opacity</label>
+          <div class="row">
+            <input
+              id="bgOpacity"
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value="1"
+            />
+            <output id="bgOpacityOut">1</output>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="btn-row">
+            <button id="undoBtn">Undo</button>
+            <button id="clearBtn" class="danger">Clear</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="row" style="cursor: pointer">
+            <input id="includeImage" type="checkbox" />
+            Include image in export
+          </label>
+        </div>
+
+        <button id="exportBtn" class="primary">Export SVG</button>
+
+        <div id="hint">
+          <strong>Freehand:</strong> click and drag to draw.<br />
+          <strong>Points:</strong> click to place points, double‑click (or
+          Enter) to finish a shape.<br />
+          Esc cancels the shape in progress.
+        </div>
+      </div>
+
+      <div id="canvas-wrap">
+        <div id="stage">
+          <img id="bgImage" alt="" />
+          <svg id="drawSvg" xmlns="http://www.w3.org/2000/svg">
+            <g id="strokes"></g>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (() => {
+        const svg = document.getElementById("drawSvg");
+        const strokes = document.getElementById("strokes");
+        const bgImage = document.getElementById("bgImage");
+        const stage = document.getElementById("stage");
+
+        // ---- canvas size / viewBox -------------------------------------------
+        const DEFAULT_W = 800,
+          DEFAULT_H = 600;
+        const wrap = document.getElementById("canvas-wrap");
+        let canvasW = DEFAULT_W,
+          canvasH = DEFAULT_H;
+        let imageDataUrl = null; // kept for export
+
+        // Scale canvasW x canvasH down (or up) as one unit so width and height
+        // always shrink/grow together -- this is what keeps the aspect ratio intact.
+        function fitStage() {
+          const availW = wrap.clientWidth - 48;
+          const availH = wrap.clientHeight - 48;
+          const scale = Math.min(availW / canvasW, availH / canvasH);
+          stage.style.width = canvasW * scale + "px";
+          stage.style.height = canvasH * scale + "px";
+        }
+
+        function setCanvasSize(w, h) {
+          canvasW = w;
+          canvasH = h;
+          svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+          fitStage();
+        }
+        setCanvasSize(DEFAULT_W, DEFAULT_H);
+        window.addEventListener("resize", fitStage);
+
+        // ---- image upload -------------------------------------------------------
+        document.getElementById("fileInput").addEventListener("change", (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            imageDataUrl = ev.target.result;
+            const img = new Image();
+            img.onload = () => {
+              setCanvasSize(img.naturalWidth, img.naturalHeight);
+              bgImage.src = imageDataUrl;
+            };
+            img.src = imageDataUrl;
+          };
+          reader.readAsDataURL(file);
+        });
+
+        document.getElementById("bgOpacity").addEventListener("input", (e) => {
+          bgImage.style.opacity = e.target.value;
+          document.getElementById("bgOpacityOut").textContent = e.target.value;
+        });
+
+        // ---- style controls -------------------------------------------------
+        const state = {
+          color: "#e9c948",
+          dotSize: 3.5,
+          dotGap: 10,
+          mode: "freehand",
+        };
+
+        document
+          .getElementById("colorInput")
+          .addEventListener("input", (e) => (state.color = e.target.value));
+        document.getElementById("dotSize").addEventListener("input", (e) => {
+          state.dotSize = parseFloat(e.target.value);
+          document.getElementById("dotSizeOut").textContent = e.target.value;
+        });
+        document.getElementById("dotGap").addEventListener("input", (e) => {
+          state.dotGap = parseFloat(e.target.value);
+          document.getElementById("dotGapOut").textContent = e.target.value;
+        });
+
+        const modeFreeBtn = document.getElementById("modeFree");
+        const modePointBtn = document.getElementById("modePoint");
+        function setMode(mode) {
+          commitActivePath();
+          state.mode = mode;
+          modeFreeBtn.classList.toggle("active", mode === "freehand");
+          modePointBtn.classList.toggle("active", mode === "points");
+        }
+        modeFreeBtn.addEventListener("click", () => setMode("freehand"));
+        modePointBtn.addEventListener("click", () => setMode("points"));
+
+        // ---- coordinate helper: screen px -> SVG user units ------------------
+        function toSvgPoint(evt) {
+          const pt = svg.createSVGPoint();
+          pt.x = evt.clientX;
+          pt.y = evt.clientY;
+          return pt.matrixTransform(svg.getScreenCTM().inverse());
+        }
+
+        // ---- undo history -------------------------------------------------------
+        // Every committed action (a finished freehand stroke, or a single placed
+        // point) is recorded here so Undo can remove exactly one action's worth
+        // of drawing, never more.
+        const history = [];
+
+        function popLastSegment(d) {
+          // "M x y L x y L x y" -> drop the last " L x y"; returns null if only
+          // the initial M remains (nothing left to trim).
+          const idx = d.lastIndexOf(" L ");
+          return idx === -1 ? null : d.slice(0, idx);
+        }
+
+        // ---- dotted path styling ---------------------------------------------
+        function styleDotted(path) {
+          path.setAttribute("fill", "none");
+          path.setAttribute("stroke", state.color);
+          path.setAttribute("stroke-width", state.dotSize);
+          path.setAttribute("stroke-linecap", "round");
+          // near-zero dash length + round cap renders as a row of dots
+          path.setAttribute("stroke-dasharray", `0.1 ${state.dotGap}`);
+        }
+
+        function newPath(d) {
+          const path = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path",
+          );
+          path.setAttribute("d", d);
+          styleDotted(path);
+          strokes.appendChild(path);
+          return path;
+        }
+
+        // ---- freehand drawing ---------------------------------------------------
+        let activePath = null;
+        let drawing = false;
+
+        function onPointerDown(evt) {
+          if (state.mode !== "freehand") return;
+          drawing = true;
+          const p = toSvgPoint(evt);
+          activePath = newPath(`M ${p.x} ${p.y}`);
+          svg.setPointerCapture(evt.pointerId);
+        }
+        function onPointerMove(evt) {
+          if (state.mode === "freehand") {
+            if (!drawing || !activePath) return;
+            const p = toSvgPoint(evt);
+            activePath.setAttribute(
+              "d",
+              activePath.getAttribute("d") + ` L ${p.x} ${p.y}`,
+            );
+          }
+        }
+        function onPointerUp() {
+          if (state.mode !== "freehand") return;
+          if (activePath) history.push({ type: "freehand", path: activePath });
+          drawing = false;
+          activePath = null;
+        }
+
+        // ---- point-to-point drawing -------------------------------------------
+        let pointPath = null;
+        let pointPathD = "";
+        let suppressNextClick = false; // avoids the 2nd click of a dblclick adding a point
+
+        function onClick(evt) {
+          if (state.mode !== "points") return;
+          if (suppressNextClick) {
+            suppressNextClick = false;
+            return;
+          }
+          const p = toSvgPoint(evt);
+          if (!pointPath) {
+            pointPathD = `M ${p.x} ${p.y}`;
+            pointPath = newPath(pointPathD);
+            history.push({ type: "point", path: pointPath, first: true });
+          } else {
+            pointPathD += ` L ${p.x} ${p.y}`;
+            pointPath.setAttribute("d", pointPathD);
+            history.push({ type: "point", path: pointPath, first: false });
+          }
+        }
+        function finishPointPath(evt) {
+          if (evt && evt.type === "dblclick") suppressNextClick = true;
+          pointPath = null;
+          pointPathD = "";
+        }
+        // Stops extending the current shape but keeps everything drawn so far.
+        // Used when switching modes -- a mode change should never discard work.
+        function commitActivePath() {
+          if (state.mode === "freehand" && activePath) {
+            if (!history.some((h) => h.path === activePath)) {
+              history.push({ type: "freehand", path: activePath });
+            }
+            activePath = null;
+            drawing = false;
+          }
+          if (state.mode === "points" && pointPath) {
+            finishPointPath();
+          }
+        }
+        // Explicit discard of the shape currently being drawn (Escape key only).
+        function cancelActivePath() {
+          if (state.mode === "freehand" && activePath) {
+            // commit the in-progress stroke instead of discarding it
+            history.push({ type: "freehand", path: activePath });
+            activePath = null;
+            drawing = false;
+          }
+          if (pointPath) {
+            // commit the in-progress shape as-is instead of discarding it
+            finishPointPath();
+          }
+        }
+
+        svg.addEventListener("pointerdown", onPointerDown);
+        svg.addEventListener("pointermove", onPointerMove);
+        svg.addEventListener("pointerup", onPointerUp);
+        svg.addEventListener("click", onClick);
+        svg.addEventListener("dblclick", finishPointPath);
+        window.addEventListener("keydown", (e) => {
+          const tag = document.activeElement && document.activeElement.tagName;
+          if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return; // sidebar controls
+          if (e.key === "Escape") cancelActivePath();
+          if (e.key === "Enter") finishPointPath();
+        });
+
+        // ---- undo / clear -------------------------------------------------------
+        document.getElementById("undoBtn").addEventListener("click", () => {
+          // An in-progress freehand stroke isn't committed to history until
+          // pointerup, so undoing it just means discarding that stroke.
+          if (state.mode === "freehand" && activePath) {
+            activePath.remove();
+            activePath = null;
+            drawing = false;
+            return;
+          }
+
+          const last = history.pop();
+          if (!last) return;
+
+          if (last.type === "freehand") {
+            last.path.remove();
+          } else if (last.type === "point") {
+            if (last.first) {
+              last.path.remove();
+              if (pointPath === last.path) {
+                pointPath = null;
+                pointPathD = "";
+              }
+            } else {
+              const trimmed = popLastSegment(last.path.getAttribute("d"));
+              if (trimmed) {
+                last.path.setAttribute("d", trimmed);
+                if (pointPath === last.path) pointPathD = trimmed;
+              }
+            }
+          }
+        });
+        document.getElementById("clearBtn").addEventListener("click", () => {
+          strokes.innerHTML = "";
+          history.length = 0;
+          activePath = null;
+          drawing = false;
+          pointPath = null;
+          pointPathD = "";
+        });
+
+        // ---- export as standalone SVG -----------------------------------------
+        document.getElementById("exportBtn").addEventListener("click", () => {
+          const includeImage = document.getElementById("includeImage").checked;
+          const out = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "svg",
+          );
+          out.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+          out.setAttribute("viewBox", `0 0 ${canvasW} ${canvasH}`);
+          out.setAttribute("width", canvasW);
+          out.setAttribute("height", canvasH);
+
+          if (includeImage && imageDataUrl) {
+            const img = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "image",
+            );
+            img.setAttribute("href", imageDataUrl);
+            img.setAttribute("width", canvasW);
+            img.setAttribute("height", canvasH);
+            out.appendChild(img);
+          }
+          out.appendChild(strokes.cloneNode(true));
+
+          const svgText = new XMLSerializer().serializeToString(out);
+          const blob = new Blob([svgText], { type: "image/svg+xml" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "dotted-drawing.svg";
+          a.click();
+          URL.revokeObjectURL(url);
+        });
+      })();
+    </script>
+  </body>
+</html>
